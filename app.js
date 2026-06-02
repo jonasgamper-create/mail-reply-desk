@@ -9,7 +9,16 @@ const DEFAULT_STATE = {
     gender: "female",
     appName: "Linda Social Desk",
     formalSender: "Frau Hiller",
-    casualSender: "Linda"
+    casualSender: "Linda",
+    roleTitle: "Influencerin / Social Media Managerin",
+    niche: "Lifestyle, Sport, Content Creation, Brand-Kooperationen",
+    services: "Reels, Stories, UGC, Shootings, Kampagnenkonzepte, Content-Kalender",
+    mediaKitUrl: "",
+    socialLinks: "",
+    rateCardNote: "Preise erst nach Briefing, Deliverables, Nutzungsrechten, Laufzeit und Budgetrahmen fixieren.",
+    usageRightsPolicy: "Whitelisting/Spark Ads, Paid Usage, Exklusivität und Laufzeit immer separat klären.",
+    briefingChecklist: "Kampagnenziel\nDeliverables\nTiming/Deadline\nBudgetrahmen\nNutzungsrechte/Laufzeit\nExklusivität\nFreigabeschleifen\nReporting",
+    brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Vergütung, keine automatischen Zusagen, keine Preise ohne Scope"
   },
   accounts: [
     {
@@ -74,7 +83,7 @@ const DEFAULT_STATE = {
   ],
   style: {
     voice: "Linda schreibt klar, warm und professionell. Sie klingt effizient, nahbar und nie künstlich. Sie vermeidet lange Erklärungen, bleibt aber vollständig, wenn Termine, Preise, nächste Schritte oder Verantwortlichkeiten wichtig sind.",
-    rules: "Nie automatisch senden. Immer als Entwurf formulieren. Wenn Informationen fehlen, dezent markieren. Anrede und Signatur an Konto, Kanal und Beziehung anpassen.",
+    rules: "Nie automatisch senden. Immer als Entwurf formulieren. Wenn Informationen fehlen, dezent markieren. Anrede und Signatur an Konto, Kanal und Beziehung anpassen. Bei Kooperationen immer Deliverables, Budget, Nutzungsrechte, Timing und Freigaben klären.",
     signature: "Liebe Grüße\nLinda"
   },
   settings: {
@@ -404,6 +413,15 @@ function renderProfileInputs() {
   $("#ownerAppName").value = state.owner.appName;
   $("#ownerFormalSender").value = state.owner.formalSender;
   $("#ownerCasualSender").value = state.owner.casualSender;
+  $("#ownerRoleTitle").value = state.owner.roleTitle;
+  $("#ownerNiche").value = state.owner.niche;
+  $("#ownerServices").value = state.owner.services;
+  $("#ownerMediaKitUrl").value = state.owner.mediaKitUrl;
+  $("#ownerSocialLinks").value = state.owner.socialLinks;
+  $("#ownerRateCardNote").value = state.owner.rateCardNote;
+  $("#ownerUsageRightsPolicy").value = state.owner.usageRightsPolicy;
+  $("#ownerBriefingChecklist").value = state.owner.briefingChecklist;
+  $("#ownerBrandSafetyNoGos").value = state.owner.brandSafetyNoGos;
   $("#styleVoice").value = state.style.voice;
   $("#styleRules").value = state.style.rules;
   $("#styleSignature").value = state.style.signature;
@@ -621,6 +639,15 @@ function saveProfiles() {
   state.owner.appName = $("#ownerAppName").value.trim() || `${getOwnerFullName()} Desk`;
   state.owner.formalSender = $("#ownerFormalSender").value.trim() || defaultFormalSender(state.owner);
   state.owner.casualSender = $("#ownerCasualSender").value.trim() || state.owner.firstName;
+  state.owner.roleTitle = $("#ownerRoleTitle").value.trim();
+  state.owner.niche = $("#ownerNiche").value.trim();
+  state.owner.services = $("#ownerServices").value.trim();
+  state.owner.mediaKitUrl = $("#ownerMediaKitUrl").value.trim();
+  state.owner.socialLinks = $("#ownerSocialLinks").value.trim();
+  state.owner.rateCardNote = $("#ownerRateCardNote").value.trim();
+  state.owner.usageRightsPolicy = $("#ownerUsageRightsPolicy").value.trim();
+  state.owner.briefingChecklist = $("#ownerBriefingChecklist").value.trim();
+  state.owner.brandSafetyNoGos = $("#ownerBrandSafetyNoGos").value.trim();
   state.style.voice = $("#styleVoice").value.trim();
   state.style.rules = $("#styleRules").value.trim();
   state.style.signature = $("#styleSignature").value.trim();
@@ -695,6 +722,12 @@ async function handleToolbarAction(action) {
     renderSuggestions(suggestions, 0);
     setDraft(suggestions[0].text, `Vorschlag 1 ausgewählt`);
     activeCalendarEvent = suggestions[0].event || null;
+    return;
+  }
+
+  if (["briefing", "pricing", "followup"].includes(action)) {
+    const generated = buildCreatorActionDraft(action, context);
+    setDraft(generated, labelForAction(action));
     return;
   }
 
@@ -799,7 +832,9 @@ function buildEmailReply(context) {
   const greeting = makeGreeting(context, isEnglish);
   const signoff = makeSignature(context, isEnglish);
   const answerParagraphs = makeAnswerParagraphs(context, isEnglish);
-  const goalSentence = context.goal ? makeGoalSentence(context.goal, context.relationship, isEnglish) : "";
+  const goalSentence = context.goal && !isCreatorCollaborationContext(context)
+    ? makeGoalSentence(context.goal, context.relationship, isEnglish)
+    : "";
   const threadAwareLine = makeThreadAwareLine(context, isEnglish);
 
   const paragraphs = [
@@ -815,6 +850,27 @@ function buildEmailReply(context) {
   return cleanupDraft(paragraphs.join("\n\n"));
 }
 
+function buildCreatorActionDraft(action, context) {
+  const focusByAction = {
+    briefing: "briefing",
+    pricing: "pricing",
+    followup: "followup"
+  };
+  const variantContext = {
+    ...context,
+    creatorFocus: focusByAction[action] || "briefing",
+    tone: action === "pricing" ? "verbindlich" : context.tone,
+    goal: action === "briefing"
+      ? "Briefingdetails klären"
+      : action === "pricing"
+        ? "Budget, Nutzungsrechte und Scope klären"
+        : "freundlich nachfassen"
+  };
+
+  if (action === "followup") return buildCreatorFollowupMail(variantContext);
+  return buildEmailReply(variantContext);
+}
+
 function buildWorkflowSuggestions(context) {
   if (context.workflowMode === "create") return buildNewMailSuggestions(context);
   if (context.workflowMode === "event") return buildEventSuggestions(context);
@@ -823,32 +879,57 @@ function buildWorkflowSuggestions(context) {
 
 function buildDraftSuggestions(context) {
   const intent = inferMailIntent(context);
-  const base = [
-    {
-      title: "Kurz & klar",
-      tone: "kurz",
-      relationship: context.relationship,
-      summary: "direkt antworten, offene Punkte knapp klären"
-    },
-    {
-      title: "Warm & freundlich",
-      tone: "freundlich",
-      relationship: context.relationship,
-      summary: "nahbar antworten, Kooperation oder Anliegen positiv aufnehmen"
-    },
-    {
-      title: "Verbindlich & professionell",
-      tone: "verbindlich",
-      relationship: "sie",
-      summary: "formeller, sauber strukturiert, nächste Schritte eindeutig"
-    }
-  ];
+  const base = isCreatorCollaborationContext(context)
+    ? [
+        {
+          title: "Interesse + Briefing",
+          tone: "freundlich",
+          relationship: context.relationship,
+          creatorFocus: "briefing",
+          summary: "Anfrage positiv aufnehmen und fehlende Briefingdaten abfragen"
+        },
+        {
+          title: "Budget & Rechte",
+          tone: "verbindlich",
+          relationship: context.relationship,
+          creatorFocus: "pricing",
+          summary: "Preis nur nach Scope, Nutzungsrechten und Laufzeit einordnen"
+        },
+        {
+          title: "Kurz entscheiden",
+          tone: "kurz",
+          relationship: context.relationship,
+          creatorFocus: "short",
+          summary: "knapp sagen, welche Daten für eine Zusage fehlen"
+        }
+      ]
+    : [
+        {
+          title: "Kurz & klar",
+          tone: "kurz",
+          relationship: context.relationship,
+          summary: "direkt antworten, offene Punkte knapp klären"
+        },
+        {
+          title: "Warm & freundlich",
+          tone: "freundlich",
+          relationship: context.relationship,
+          summary: "nahbar antworten, Kooperation oder Anliegen positiv aufnehmen"
+        },
+        {
+          title: "Verbindlich & professionell",
+          tone: "verbindlich",
+          relationship: "sie",
+          summary: "formeller, sauber strukturiert, nächste Schritte eindeutig"
+        }
+      ];
 
   return base.map((variant, index) => {
     const variantContext = {
       ...context,
       tone: variant.tone,
-      relationship: variant.relationship
+      relationship: variant.relationship,
+      creatorFocus: variant.creatorFocus
     };
     return {
       title: variant.title,
@@ -1036,21 +1117,27 @@ function makeAnswerParagraphs(context, isEnglish) {
   const categories = categorizeKeywords(context.keywords);
   const paragraphs = [];
   const formal = context.relationship === "sie";
+  const creatorParagraphs = makeCreatorCollaborationParagraphs(context, categories, isEnglish);
 
   if (!context.keywords.length) {
-    return [
+    return creatorParagraphs.length ? creatorParagraphs : [
       isEnglish
         ? "[Add the specific answer points, date, price or next step here.]"
         : "[Konkreten Antwortpunkt, Termin, Preis oder nächsten Schritt ergänzen.]"
     ];
   }
 
+  paragraphs.push(...creatorParagraphs);
+
   if (isEnglish) {
     if (categories.appointment.length) paragraphs.push(`I can offer the following time option: ${joinReadable(categories.appointment)}.`);
     if (categories.budget.length) paragraphs.push(`Regarding pricing and budget: ${joinReadable(categories.budget)}.`);
     if (categories.nextStep.length) paragraphs.push(`For the next step, I need: ${joinReadable(categories.nextStep)}.`);
     if (categories.timing.length) paragraphs.push(`Timing/deadline: ${joinReadable(categories.timing)}.`);
-    if (categories.offer.length) paragraphs.push(`For the collaboration/offer, I will align the scope once the briefing is clear.`);
+    if (categories.deliverables.length) paragraphs.push(`Deliverables/assets: ${joinReadable(categories.deliverables)}.`);
+    if (categories.usageRights.length) paragraphs.push(`Usage rights: ${joinReadable(categories.usageRights)}.`);
+    if (categories.metrics.length) paragraphs.push(`Media kit / audience data: ${joinReadable(categories.metrics)}.`);
+    if (categories.offer.length && !creatorParagraphs.length) paragraphs.push(`For the collaboration/offer, I will align the scope once the briefing is clear.`);
     if (categories.other.length) paragraphs.push(categories.other.map((item) => `${item}.`).join(" "));
     return paragraphs;
   }
@@ -1075,7 +1162,16 @@ function makeAnswerParagraphs(context, isEnglish) {
       ? `Für das Timing halte ich fest: ${joinReadable(categories.timing)}.`
       : `Für das Timing halte ich fest: ${joinReadable(categories.timing)}.`);
   }
-  if (categories.offer.length && !categories.budget.length) {
+  if (categories.deliverables.length) {
+    paragraphs.push(`Bei den Deliverables halte ich fest: ${joinReadable(categories.deliverables)}.`);
+  }
+  if (categories.usageRights.length) {
+    paragraphs.push(`Zu den Nutzungsrechten halte ich fest: ${joinReadable(categories.usageRights)}.`);
+  }
+  if (categories.metrics.length) {
+    paragraphs.push(`Zu Media Kit, Zielgruppe oder Insights halte ich fest: ${joinReadable(categories.metrics)}.`);
+  }
+  if (categories.offer.length && !categories.budget.length && !creatorParagraphs.length) {
     paragraphs.push(formal
       ? "Für das Angebot stimme ich Umfang, Formate und Nutzungsrechte gerne sauber mit Ihnen ab."
       : "Für das Angebot stimme ich Umfang, Formate und Nutzungsrechte gerne sauber mit dir ab.");
@@ -1087,14 +1183,102 @@ function makeAnswerParagraphs(context, isEnglish) {
   return paragraphs;
 }
 
+function makeCreatorCollaborationParagraphs(context, categories, isEnglish) {
+  if (!isCreatorCollaborationContext(context)) return [];
+  const formal = context.relationship === "sie";
+  const checklist = briefingChecklistItems();
+  const topChecklist = checklist.slice(0, 6);
+  const checklistText = joinReadable(topChecklist);
+  const mediaKit = creatorMediaKitLine(isEnglish);
+  const rightsPolicy = state.owner.usageRightsPolicy;
+  const rateNote = state.owner.rateCardNote;
+  const focus = context.creatorFocus || "briefing";
+
+  if (isEnglish) {
+    const intro = focus === "pricing"
+      ? "For a serious pricing estimate, I need the exact scope first."
+      : "The collaboration sounds interesting in principle.";
+    return [
+      intro,
+      `For a clear assessment, please send the following details: ${checklistText}.`,
+      focus === "pricing" && rateNote ? rateNote : "",
+      rightsPolicy ? `Usage rights note: ${rightsPolicy}` : "",
+      mediaKit
+    ].filter(Boolean);
+  }
+
+  if (focus === "pricing") {
+    return [
+      formal
+        ? "Für eine seriöse Preiseinschätzung brauche ich bitte zuerst den genauen Leistungsumfang."
+        : "Für eine saubere Preiseinschätzung brauche ich bitte zuerst den genauen Leistungsumfang.",
+      `Relevant sind vor allem: ${checklistText}.`,
+      rateNote || "",
+      rightsPolicy ? `Wichtig zu den Nutzungsrechten: ${rightsPolicy}` : "",
+      mediaKit
+    ].filter(Boolean);
+  }
+
+  if (focus === "short") {
+    return [
+      formal
+        ? `Für eine Entscheidung brauche ich bitte noch ${checklistText}.`
+        : `Für eine Entscheidung brauche ich bitte noch ${checklistText}.`,
+      mediaKit
+    ].filter(Boolean);
+  }
+
+  return [
+    formal
+      ? "Damit ich die Anfrage sauber prüfen kann, brauche ich bitte die wichtigsten Rahmendaten."
+      : "Damit ich die Anfrage sauber prüfen kann, brauche ich bitte die wichtigsten Rahmendaten.",
+    `Konkret wichtig sind: ${checklistText}.`,
+    rightsPolicy ? `Zu den Nutzungsrechten: ${rightsPolicy}` : "",
+    mediaKit
+  ].filter(Boolean);
+}
+
+function buildCreatorFollowupMail(context) {
+  const isEnglish = context.targetLanguage === "en";
+  const greeting = makeGreeting(context, isEnglish);
+  const signoff = makeSignature(context, isEnglish);
+  const subject = context.parsed.subject || context.goal || "der Anfrage";
+  const missing = joinReadable(briefingChecklistItems().slice(0, 5));
+  const mediaKit = creatorMediaKitLine(isEnglish);
+  const formal = context.relationship === "sie";
+  const body = isEnglish
+    ? [
+        `I wanted to briefly follow up regarding ${subject}.`,
+        `If the collaboration is still relevant, please send the missing details: ${missing}.`,
+        mediaKit,
+        "Then I can prepare a clean next step."
+      ]
+    : [
+        formal
+          ? `ich wollte wegen ${subject} kurz nachfragen.`
+          : `ich wollte wegen ${subject} kurz nachfragen.`,
+        formal
+          ? `Wenn die Kooperation weiterhin relevant ist, senden Sie mir gerne noch die fehlenden Details: ${missing}.`
+          : `Wenn die Kooperation weiterhin relevant ist, schick mir gerne noch die fehlenden Details: ${missing}.`,
+        mediaKit,
+        formal
+          ? "Danach kann ich den nächsten Schritt sauber vorbereiten."
+          : "Danach kann ich den nächsten Schritt sauber vorbereiten."
+      ];
+  return cleanupDraft([greeting, ...body.filter(Boolean), signoff].join("\n\n"));
+}
+
 function categorizeKeywords(keywords) {
   return keywords.reduce((categories, item) => {
     const normalized = item.toLowerCase();
     const detail = normalizeKeywordDetail(item);
-    if (containsAny(normalized, ["termin", "call", "meeting", "datum"])) categories.appointment.push(detail);
+    if (containsAny(normalized, ["termin", "call", "meeting", "datum"])) categories.appointment.push(cleanAppointmentDetail(detail));
     else if (containsAny(normalized, ["preis", "kosten", "budget", "honorar", "paketpreis"])) categories.budget.push(detail);
-    else if (containsAny(normalized, ["nächster schritt", "naechster schritt", "next step", "briefing", "nutzungsrechte", "kampagnenziel"])) categories.nextStep.push(detail);
+    else if (containsAny(normalized, ["nächster schritt", "naechster schritt", "next step", "briefing", "kampagnenziel", "ziel der kampagne"])) categories.nextStep.push(detail);
     else if (containsAny(normalized, ["deadline", "frist", "bis", "timing"])) categories.timing.push(detail);
+    else if (containsAny(normalized, ["deliverable", "asset", "assets", "reel", "story", "stories", "ugc", "posting", "post", "shooting", "format", "formate"])) categories.deliverables.push(detail);
+    else if (containsAny(normalized, ["nutzungsrecht", "nutzungsrechte", "usage", "paid usage", "whitelisting", "spark ads", "exklusivität", "exklusivitaet", "laufzeit"])) categories.usageRights.push(detail);
+    else if (containsAny(normalized, ["media kit", "mediakit", "insights", "reichweite", "zielgruppe", "audience", "follower", "stats", "analytics"])) categories.metrics.push(detail);
     else if (containsAny(normalized, ["angebot", "kooperation", "collab", "kampagne"])) categories.offer.push(detail);
     else categories.other.push(detail);
     return categories;
@@ -1103,6 +1287,9 @@ function categorizeKeywords(keywords) {
     budget: [],
     nextStep: [],
     timing: [],
+    deliverables: [],
+    usageRights: [],
+    metrics: [],
     offer: [],
     other: []
   });
@@ -1110,7 +1297,7 @@ function categorizeKeywords(keywords) {
 
 function inferMailIntent(context) {
   const text = `${context.parsed.subject} ${context.thread} ${context.keywords.join(" ")}`.toLowerCase();
-  if (containsAny(text, ["kooperation", "collab", "kampagne", "reel", "story"])) {
+  if (containsAny(text, ["kooperation", "collab", "kampagne", "reel", "story", "ugc", "influencer", "brand deal"])) {
     return "Erkannt: Kooperations- oder Kampagnenanfrage";
   }
   if (containsAny(text, ["preis", "kosten", "budget", "honorar", "angebot"])) {
@@ -1128,6 +1315,57 @@ function inferMailIntent(context) {
   return "Erkannt: allgemeine Antwort mit offenen Details";
 }
 
+function isCreatorCollaborationContext(context) {
+  const text = [
+    context.parsed?.subject,
+    context.thread,
+    context.goal,
+    context.keywords?.join(" "),
+    context.brand?.name
+  ].filter(Boolean).join(" ").toLowerCase();
+  return containsAny(text, [
+    "kooperation",
+    "collab",
+    "campaign",
+    "kampagne",
+    "brand deal",
+    "influencer",
+    "creator",
+    "ugc",
+    "reel",
+    "story",
+    "stories",
+    "shooting",
+    "media kit",
+    "mediakit",
+    "nutzungsrechte",
+    "whitelisting",
+    "paid usage",
+    "spark ads"
+  ]);
+}
+
+function briefingChecklistItems() {
+  const items = splitItems(state.owner.briefingChecklist);
+  return items.length ? items : [
+    "Kampagnenziel",
+    "Deliverables",
+    "Timing/Deadline",
+    "Budgetrahmen",
+    "Nutzungsrechte/Laufzeit",
+    "Freigabeschleifen"
+  ];
+}
+
+function creatorMediaKitLine(isEnglish = false) {
+  const links = [state.owner.mediaKitUrl, state.owner.socialLinks]
+    .map((item) => item?.trim())
+    .filter(Boolean)
+    .join("\n");
+  if (!links) return "";
+  return isEnglish ? `Media kit / links:\n${links}` : `Media Kit / Links:\n${links}`;
+}
+
 function buildSuggestionBullets(context) {
   const categories = categorizeKeywords(context.keywords);
   const bullets = [];
@@ -1137,6 +1375,12 @@ function buildSuggestionBullets(context) {
   if (categories.budget.length) bullets.push(`Budget: ${joinReadable(categories.budget)}`);
   if (categories.nextStep.length) bullets.push(`Nächster Schritt: ${joinReadable(categories.nextStep)}`);
   if (categories.timing.length) bullets.push(`Timing: ${joinReadable(categories.timing)}`);
+  if (categories.deliverables.length) bullets.push(`Deliverables: ${joinReadable(categories.deliverables)}`);
+  if (categories.usageRights.length) bullets.push(`Nutzungsrechte: ${joinReadable(categories.usageRights)}`);
+  if (categories.metrics.length) bullets.push(`Media Kit/Insights: ${joinReadable(categories.metrics)}`);
+  if (isCreatorCollaborationContext(context)) {
+    bullets.push(`Creator-Check: ${joinReadable(briefingChecklistItems().slice(0, 4))}`);
+  }
   if (categories.other.length) bullets.push(`Zusatz: ${joinReadable(categories.other.slice(0, 2))}`);
   return bullets.length ? bullets.slice(0, 4) : ["Stichworte ergänzen oder Mailverlauf automatisch anbinden"];
 }
@@ -1239,9 +1483,16 @@ function stripKeywordLabel(item) {
 
 function normalizeKeywordDetail(item) {
   return stripKeywordLabel(item)
-    .replace(/\b(abfragen|anfragen|anfordern|erfragen|klären|klaeren)\b\.?$/i, "")
+    .replace(/\b(abfragen|anfragen|anfordern|erfragen|klären|klaeren|anbieten|vorschlagen)\b\.?$/i, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function cleanAppointmentDetail(item) {
+  const cleaned = item
+    .replace(/^(call|termin|meeting|datum)\s*:?\s*/i, "")
+    .trim();
+  return cleaned || item;
 }
 
 function closeByTone(tone, relationship, isEnglish) {
@@ -1376,17 +1627,21 @@ function buildHashtags(context) {
 function buildOffer(context) {
   const topic = context.topic || "Kooperation";
   const details = splitItems(context.details);
+  const checklist = briefingChecklistItems();
+  const mediaKit = creatorMediaKitLine(false);
   return cleanupDraft([
     "Guten Tag,",
     "",
     `vielen Dank für die Anfrage zur ${topic}. Ich freue mich grundsätzlich über passende Kooperationen, wenn Zielgruppe, Timing und Umsetzung sauber zusammenpassen.`,
     "",
+    state.owner.services ? `Mögliche Leistungen: ${state.owner.services}.` : "",
+    mediaKit,
+    "",
     "Für eine Einschätzung brauche ich bitte:",
-    "- Ziel der Kampagne",
-    "- gewünschte Formate und Anzahl der Assets",
-    "- Timing und Deadline",
-    "- Budgetrahmen",
-    "- Nutzungsrechte und Laufzeit",
+    checklist.map((item) => `- ${item}`).join("\n"),
+    "",
+    state.owner.rateCardNote ? `Preisregel: ${state.owner.rateCardNote}` : "",
+    state.owner.usageRightsPolicy ? `Nutzungsrechte: ${state.owner.usageRightsPolicy}` : "",
     details.length ? `\nBereits notiert:\n${details.map((item) => `- ${item}`).join("\n")}` : "",
     "",
     "Sobald diese Punkte klar sind, kann ich einen passenden Vorschlag vorbereiten.",
@@ -1397,8 +1652,13 @@ function buildOffer(context) {
 
 function buildBriefing(context) {
   const topic = context.topic || "[Projekt]";
+  const checklist = briefingChecklistItems();
   return cleanupDraft([
     `Briefing: ${topic}`,
+    "",
+    state.owner.roleTitle ? `Profil: ${state.owner.roleTitle}` : "",
+    state.owner.niche ? `Nische: ${state.owner.niche}` : "",
+    state.owner.services ? `Leistungen: ${state.owner.services}` : "",
     "",
     "Ziel:",
     context.cta || "[Ziel ergänzen]",
@@ -1406,17 +1666,11 @@ function buildBriefing(context) {
     "Zielgruppe:",
     context.brand.audience,
     "",
-    "Kernbotschaft:",
-    "[Kernbotschaft ergänzen]",
-    "",
-    "Assets:",
-    "- Format",
-    "- Anzahl",
-    "- Deadline",
-    "- Nutzungsrechte",
+    "Checkliste:",
+    checklist.map((item) => `- ${item}`).join("\n"),
     "",
     "No-Gos:",
-    context.brand.noGos
+    [context.brand.noGos, state.owner.brandSafetyNoGos].filter(Boolean).join("\n")
   ].join("\n"));
 }
 
@@ -1516,15 +1770,17 @@ function updateSummary(force = false) {
     return;
   }
   const parsed = parseMailThread(thread);
+  const context = collectReplyContext();
   const questions = extractQuestions(thread);
   const dates = extractDateLike(thread);
   const amounts = extractAmounts(thread);
   const summary = [
-    `Arbeitskonto: ${collectReplyContext().account.email}`,
-    `Anrede/Absender: ${formatRelationshipLabel(collectReplyContext())}`,
+    `Arbeitskonto: ${context.account.email}`,
+    `Anrede/Absender: ${formatRelationshipLabel(context)}`,
     parsed.senderName ? `Absender: ${parsed.senderName}` : "",
     parsed.senderEmail ? `Mail: ${parsed.senderEmail}` : "",
     parsed.subject ? `Betreff: ${parsed.subject}` : "",
+    isCreatorCollaborationContext(context) ? `Creator-Check:\n${briefingChecklistItems().slice(0, 7).map((item) => `- ${item}`).join("\n")}` : "",
     questions.length ? `Fragen:\n${questions.map((item) => `- ${item}`).join("\n")}` : "",
     dates.length ? `Termine/Fristen: ${dates.join(", ")}` : "",
     amounts.length ? `Beträge/Budgets: ${amounts.join(", ")}` : "",
@@ -1547,6 +1803,15 @@ function buildPrompt(operation = "reply") {
     `Freigegebene Konten: ${getVisibleAccounts().map((account) => account.email).join(", ")}`,
     `Primärer Kalender: ${calendarLabel(state.settings.primaryCalendar)}`,
     `Kalender-Modus: ${state.settings.calendarMode === "ics-first" ? "ICS zuerst, nie automatisch eintragen" : "direkt nach Bestätigung eintragen"}`,
+    `Nutzerprofil: ${getOwnerFullName()} · ${state.owner.roleTitle || "Social Media"}`,
+    `Nische: ${state.owner.niche || "nicht hinterlegt"}`,
+    `Leistungen: ${state.owner.services || "nicht hinterlegt"}`,
+    `Media-Kit: ${state.owner.mediaKitUrl || "nicht hinterlegt"}`,
+    `Social Links: ${state.owner.socialLinks || "nicht hinterlegt"}`,
+    `Preisregel: ${state.owner.rateCardNote || "keine Preise ohne Scope erfinden"}`,
+    `Nutzungsrechte-Regel: ${state.owner.usageRightsPolicy || "Nutzungsrechte separat klären"}`,
+    `Briefing-Checkliste: ${briefingChecklistItems().join(", ")}`,
+    `Brand-Safety No-Gos: ${state.owner.brandSafetyNoGos || "keine unbestätigten Zusagen"}`,
     `Linda-Stil: ${state.style.voice}`,
     `Linda-Regeln: ${state.style.rules}`,
     `Brand: ${brand.name || "Allgemein"}`,
@@ -1611,10 +1876,12 @@ function updateDecisionPreview() {
     `Fokus: ${state.settings.allowedMailOnly ? "nur freigegebene Liste" : "alle konfigurierten Konten"}`,
     `Anrede: ${context.relationship === "du" ? "Du" : "Sie"}`,
     `Absender: ${context.senderName}`,
+    `Profil: ${state.owner.roleTitle || "Social Media"}`,
     `Signatur: ${(context.account.signature || state.style.signature).split("\n")[0]}`,
-    `Kalender: ${calendarLabel(state.settings.primaryCalendar)}`
+    `Kalender: ${calendarLabel(state.settings.primaryCalendar)}`,
+    isCreatorCollaborationContext(context) ? `Creator-Check: Briefing, Budget, Rechte, Timing` : ""
   ];
-  box.textContent = lines.join("\n");
+  box.textContent = lines.filter(Boolean).join("\n");
 }
 
 function setWorkflowMode(mode) {
@@ -1848,6 +2115,9 @@ function extractAmounts(text) {
 function labelForAction(action) {
   const labels = {
     reply: "Antwortentwurf",
+    briefing: "Briefing angefragt",
+    pricing: "Preis/Scope geklärt",
+    followup: "Follow-up",
     shorten: "Gekürzt",
     friendly: "Freundlicher",
     professional: "Professioneller",

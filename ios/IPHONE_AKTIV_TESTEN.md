@@ -100,9 +100,13 @@ Am iPhone:
    - `Antwort`
    - `Mail`
    - `Termin`
+   - `Briefing`
+   - `Preis`
+   - `Follow-up`
+   - `MediaKit`
    - `Kurz`
-   - `Freundlich`
-   - `Professionell`
+   - `Warm`
+   - `Profi`
 
 ## Erwartung fuer den ersten Test
 

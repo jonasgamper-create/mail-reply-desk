@@ -30,6 +30,51 @@ struct SettingsView: View {
                         .frame(minHeight: 90)
                 }
 
+                Section("Creator-Profil") {
+                    TextField("Rolle", text: $store.profile.roleTitle)
+                    TextField("Nische", text: $store.profile.niche)
+                    VStack(alignment: .leading) {
+                        Text("Leistungen").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.services)
+                            .frame(minHeight: 80)
+                    }
+                    TextField("Media-Kit URL", text: $store.profile.mediaKitURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    VStack(alignment: .leading) {
+                        Text("Social Links").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.socialLinks)
+                            .frame(minHeight: 80)
+                    }
+                }
+
+                Section("Kooperationen") {
+                    VStack(alignment: .leading) {
+                        Text("Preisregel").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.rateCardNote)
+                            .frame(minHeight: 80)
+                    }
+                    VStack(alignment: .leading) {
+                        Text("Nutzungsrechte").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.usageRightsPolicy)
+                            .frame(minHeight: 80)
+                    }
+                    VStack(alignment: .leading) {
+                        Text("Briefing-Checkliste").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.briefingChecklist)
+                            .frame(minHeight: 110)
+                    }
+                    VStack(alignment: .leading) {
+                        Text("Brand-Safety No-Gos").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.brandSafetyNoGos)
+                            .frame(minHeight: 80)
+                    }
+                    Text("Diese Felder steuern die Tastaturbuttons Briefing, Preis, Follow-up und MediaKit.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Backend spaeter") {
                     TextField("Backend URL", text: $store.profile.backendURL)
                         .keyboardType(.URL)

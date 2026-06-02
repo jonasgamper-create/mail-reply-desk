@@ -12,8 +12,9 @@ Die Tastatur ist eine erste native Version:
 
 - Nutzerprofil in der App aenderbar.
 - Vorname, Nachname, Geschlecht/Anredeprofil, App-Name, formeller und persoenlicher Absender.
+- Creator-Profil mit Rolle, Nische, Leistungen, Media-Kit, Social Links, Preisregel, Nutzungsrechten und Briefing-Checkliste.
 - Keyboard Extension mit QWERTZ-Layout.
-- Buttons: `Antwort`, `Mail`, `Termin`, `Kurz`, `Freundlich`, `Professionell`.
+- Buttons: `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`.
 - Text wird direkt in Apple Mail, Gmail, WhatsApp usw. eingefuegt, sofern Drittanbieter-Tastaturen erlaubt sind.
 
 Noch nicht enthalten:

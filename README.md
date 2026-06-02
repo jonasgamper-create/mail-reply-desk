@@ -2,6 +2,18 @@
 
 Private PWA für Linda Hiller: Mail-/DM-Antwortentwürfe, Stilprofil, Brand-Profile, Content-Hilfen, Follow-ups und Content-Kalender.
 
+## Aktueller Fokus
+
+Die App ist jetzt auf Creator-/Influencer-Mailworkflows optimiert:
+
+- Kooperationsanfragen erkennen
+- 3 Richtungen vorschlagen: Briefing, Budget/Rechte, kurze Entscheidung
+- Media-Kit, Social Links, Leistungen und Brand-Safety-Regeln im Profil speichern
+- Budget, Deliverables, Nutzungsrechte, Timing und Freigaben automatisch abfragen
+- auf iPhone als native Tastatur mit Creator-Schnellbuttons testen
+
+Die Recherche- und A/B-Entscheidungen stehen in [AB_OPTIMIERUNGEN.md](AB_OPTIMIERUNGEN.md).
+
 ## Start auf dem Mac
 
 ```bash
@@ -84,7 +96,7 @@ Im Ordner `ios/` liegt jetzt ein natives iOS-Geruest:
 - Container-App fuer Profil/Settings
 - `MailReplyKeyboard` als Custom Keyboard Extension
 - geteiltes Profil per App Group
-- QWERTZ-Tastatur mit Schnellbuttons fuer `Antwort`, `Mail`, `Termin`, `Kurz`, `Freundlich`, `Professionell`
+- QWERTZ-Tastatur mit Schnellbuttons fuer `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`
 
 Oeffnen:
 

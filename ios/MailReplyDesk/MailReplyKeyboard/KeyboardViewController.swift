@@ -40,6 +40,7 @@ final class KeyboardViewController: UIInputViewController {
 
         rootStack.addArrangedSubview(makeHeaderRow())
         rootStack.addArrangedSubview(makeActionRow())
+        rootStack.addArrangedSubview(makeCreatorRow())
         rootStack.addArrangedSubview(makeDraftRow())
         rootStack.addArrangedSubview(makeKeyRow(["q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ue"]))
         rootStack.addArrangedSubview(makeKeyRow(["a", "s", "d", "f", "g", "h", "j", "k", "l", "oe", "ae"]))
@@ -79,12 +80,27 @@ final class KeyboardViewController: UIInputViewController {
         return row
     }
 
+    private func makeCreatorRow() -> UIStackView {
+        let row = horizontalRow()
+        [
+            ("Briefing", #selector(insertBriefingDraft)),
+            ("Preis", #selector(insertPricingDraft)),
+            ("Follow-up", #selector(insertFollowUpDraft)),
+            ("MediaKit", #selector(insertMediaKitDraft))
+        ].forEach { title, selector in
+            let button = makeButton(title, weight: .medium)
+            button.addTarget(self, action: selector, for: .touchUpInside)
+            row.addArrangedSubview(button)
+        }
+        return row
+    }
+
     private func makeDraftRow() -> UIStackView {
         let row = horizontalRow()
         [
             ("Kurz", #selector(insertShortDraft)),
-            ("Freundlich", #selector(insertFriendlyDraft)),
-            ("Professionell", #selector(insertProfessionalDraft))
+            ("Warm", #selector(insertFriendlyDraft)),
+            ("Profi", #selector(insertProfessionalDraft))
         ].forEach { title, selector in
             let button = makeButton(title, weight: .medium)
             button.addTarget(self, action: selector, for: .touchUpInside)
@@ -177,8 +193,9 @@ final class KeyboardViewController: UIInputViewController {
     private func makeDraft(kind: DraftKind) -> String {
         let context = currentContext()
         let topic = context.isEmpty ? "deine Nachricht" : context
-        let greeting = kind.formal ? "Guten Tag," : "Hallo,"
-        let signoff = kind.formal ? "Beste Gruesse\n\(profile.fullName)" : "Liebe Gruesse\n\(profile.casualSender)"
+        let formal = kind.formal
+        let greeting = formal ? "Guten Tag," : "Hallo,"
+        let signoff = formal ? "Beste Gruesse\n\(profile.fullName)" : "Liebe Gruesse\n\(profile.casualSender)"
 
         let body: String
         switch kind {
@@ -194,9 +211,44 @@ final class KeyboardViewController: UIInputViewController {
             body = "danke dir fuer die Nachricht. Das klingt grundsaetzlich spannend, ich stimme die Details gerne sauber mit dir ab."
         case .professional:
             body = "vielen Dank fuer Ihre Nachricht. Ich pruefe die Details gerne und halte die naechsten Schritte verbindlich fest."
+        case .briefing:
+            body = "vielen Dank fuer die Anfrage. Grundsaetzlich klingt die Kooperation interessant. Fuer eine konkrete Einschaetzung brauche ich bitte noch:\n\n\(briefingList(limit: 6))"
+        case .pricing:
+            body = "zum Budget bzw. Preis kann ich eine serioese Einschaetzung geben, sobald der Scope klar ist. Relevant sind vor allem:\n\n\(briefingList(limit: 6))\n\n\(profile.rateCardNote)\n\n\(profile.usageRightsPolicy)"
+        case .followUp:
+            body = formal
+                ? "ich wollte wegen der Anfrage kurz nachfragen. Wenn die Kooperation weiterhin relevant ist, senden Sie mir gerne noch die fehlenden Details:\n\n\(briefingList(limit: 5))"
+                : "ich wollte wegen der Anfrage kurz nachfragen. Wenn die Kooperation weiterhin relevant ist, schick mir gerne noch die fehlenden Details:\n\n\(briefingList(limit: 5))"
+        case .mediaKit:
+            body = mediaKitBody(formal: formal)
         }
 
         return "\(greeting)\n\n\(body)\n\n\(signoff)"
+    }
+
+    private func briefingList(limit: Int) -> String {
+        let items = profile.briefingChecklist
+            .split(whereSeparator: { "\n,;".contains($0) })
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .prefix(limit)
+        let fallback = ["Kampagnenziel", "Deliverables", "Timing/Deadline", "Budgetrahmen", "Nutzungsrechte/Laufzeit", "Freigabeschleifen"].prefix(limit)
+        let source = items.isEmpty ? Array(fallback) : Array(items)
+        return source.map { "- \($0)" }.joined(separator: "\n")
+    }
+
+    private func mediaKitBody(formal: Bool) -> String {
+        let links = [profile.mediaKitURL, profile.socialLinks]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        let services = profile.services.trimmingCharacters(in: .whitespacesAndNewlines)
+        let linkBlock = links.isEmpty ? "[Media-Kit Link ergaenzen]" : links
+        let serviceBlock = services.isEmpty ? "[Leistungen ergaenzen]" : services
+        if formal {
+            return "hier finden Sie die wichtigsten Infos fuer eine moegliche Zusammenarbeit:\n\n\(linkBlock)\n\nLeistungen:\n\(serviceBlock)\n\nFuer ein konkretes Angebot brauche ich bitte Briefing, Deliverables, Timing, Budget und Nutzungsrechte."
+        }
+        return "hier findest du die wichtigsten Infos fuer eine moegliche Zusammenarbeit:\n\n\(linkBlock)\n\nLeistungen:\n\(serviceBlock)\n\nFuer ein konkretes Angebot brauche ich bitte Briefing, Deliverables, Timing, Budget und Nutzungsrechte."
     }
 
     @objc private func nextKeyboard() {
@@ -225,6 +277,22 @@ final class KeyboardViewController: UIInputViewController {
 
     @objc private func insertProfessionalDraft() {
         insertText(makeDraft(kind: .professional))
+    }
+
+    @objc private func insertBriefingDraft() {
+        insertText(makeDraft(kind: .briefing))
+    }
+
+    @objc private func insertPricingDraft() {
+        insertText(makeDraft(kind: .pricing))
+    }
+
+    @objc private func insertFollowUpDraft() {
+        insertText(makeDraft(kind: .followUp))
+    }
+
+    @objc private func insertMediaKitDraft() {
+        insertText(makeDraft(kind: .mediaKit))
     }
 
     @objc private func insertKey(_ sender: UIButton) {
@@ -256,8 +324,12 @@ private enum DraftKind {
     case short
     case friendly
     case professional
+    case briefing
+    case pricing
+    case followUp
+    case mediaKit
 
     var formal: Bool {
-        self == .professional
+        self == .professional || self == .briefing || self == .pricing || self == .followUp || self == .mediaKit
     }
 }
