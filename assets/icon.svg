@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Linda Social Desk">
+  <rect width="512" height="512" rx="64" fill="#1f2428"/>
+  <path d="M112 344V104h54v194h113v46H112Z" fill="#ffffff"/>
+  <path d="M302 344V104h55v96h75v-96h55v240h-55v-99h-75v99h-55Z" fill="#76d1c8"/>
+  <rect x="80" y="392" width="352" height="20" rx="10" fill="#c95f4b"/>
+</svg>

@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f5f6f4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Linda Desk">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Mail Reply Desk</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/icon.svg">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-mark" id="brandMark" aria-hidden="true">LH</div>
+        <div class="title-block">
+          <h1 id="appTitle">Mail Reply Desk</h1>
+          <p id="saveState">Lokal gespeichert</p>
+        </div>
+        <div class="status-strip" aria-label="Status">
+          <span>Entwurf</span>
+          <span>Nie senden</span>
+          <span id="aiModeBadge">Lokal</span>
+        </div>
+      </header>
+
+      <nav class="module-tabs" aria-label="Module">
+        <button class="tab-button active" type="button" data-panel="replyPanel">Mail</button>
+        <button class="tab-button" type="button" data-panel="contentPanel">Content</button>
+        <button class="tab-button" type="button" data-panel="calendarPanel">Kalender</button>
+        <button class="tab-button" type="button" data-panel="profilesPanel">Profile</button>
+        <button class="tab-button" type="button" data-panel="settingsPanel">Setup</button>
+      </nav>
+
+      <main class="workspace">
+        <section class="work-area" aria-label="Arbeitsbereich">
+          <section id="replyPanel" class="panel active">
+            <div class="section-head">
+              <div>
+                <h2 id="workflowTitle">Mail antworten</h2>
+                <p id="workflowSubtitle">Antwortentwurf aus Verlauf und Stichworten</p>
+              </div>
+              <button class="icon-button" id="dictateThread" type="button" title="Diktat in Verlauf">Mikro</button>
+            </div>
+
+            <div class="workflow-switch" aria-label="Hauptworkflow">
+              <button class="workflow-button active" type="button" data-workflow-mode="reply">Mail antworten</button>
+              <button class="workflow-button" type="button" data-workflow-mode="create">Mail erstellen</button>
+              <button class="workflow-button" type="button" data-workflow-mode="event">Termin erstellen</button>
+            </div>
+
+            <div class="form-grid two">
+              <label>
+                Konto
+                <select id="fromAccount"></select>
+              </label>
+              <label>
+                Brand
+                <select id="brandSelect"></select>
+              </label>
+              <label>
+                Beziehung
+                <select id="relationshipSelect">
+                  <option value="auto">Auto</option>
+                  <option value="du">Du</option>
+                  <option value="sie">Sie</option>
+                </select>
+              </label>
+              <label>
+                Absender
+                <select id="senderNameSelect">
+                  <option value="auto">Auto</option>
+                  <option value="Linda Hiller">Linda Hiller</option>
+                  <option value="Frau Hiller">Frau Hiller</option>
+                  <option value="Linda">Linda</option>
+                </select>
+              </label>
+              <label>
+                Kanal
+                <select id="channelSelect">
+                  <option value="E-Mail">E-Mail</option>
+                  <option value="Instagram DM">Instagram DM</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                </select>
+              </label>
+              <label>
+                Ton
+                <select id="toneSelect">
+                  <option value="freundlich">Freundlich</option>
+                  <option value="kurz">Kurz</option>
+                  <option value="luxurioes">Luxuriös</option>
+                  <option value="verbindlich">Verbindlich</option>
+                  <option value="entschuldigend">Entschuldigend</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-grid two">
+              <label>
+                Empfänger
+                <input id="recipientName" autocomplete="off" placeholder="Auto oder Name">
+              </label>
+              <label>
+                Ziel
+                <input id="replyGoal" autocomplete="off" placeholder="z.B. Termin bestätigen">
+              </label>
+            </div>
+
+            <label>
+              <span id="threadLabel">Verlauf</span>
+              <textarea id="threadInput" class="large-input" placeholder="Mailverlauf oder DM hier einfügen"></textarea>
+            </label>
+
+            <label>
+              <span id="keywordLabel">Stichworte</span>
+              <textarea id="keywordInput" placeholder="Antwortpunkte, Termine, Preise, nächste Schritte"></textarea>
+            </label>
+
+            <div id="eventFields" class="event-fields hidden">
+              <div class="form-grid two">
+                <label>
+                  Termintitel
+                  <input id="eventTitle" autocomplete="off" placeholder="z.B. Kampagnen-Call">
+                </label>
+                <label>
+                  Teilnehmer-Mail
+                  <input id="eventAttendees" autocomplete="off" placeholder="name@firma.com">
+                </label>
+                <label>
+                  Datum
+                  <input id="eventDate" type="date">
+                </label>
+                <label>
+                  Uhrzeit
+                  <input id="eventTime" type="time">
+                </label>
+                <label>
+                  Dauer
+                  <select id="eventDuration">
+                    <option value="30">30 Minuten</option>
+                    <option value="45">45 Minuten</option>
+                    <option value="60">60 Minuten</option>
+                    <option value="90">90 Minuten</option>
+                  </select>
+                </label>
+                <label>
+                  Ort / Link
+                  <input id="eventLocation" autocomplete="off" placeholder="Google Meet, Zoom, Telefon, Adresse">
+                </label>
+              </div>
+            </div>
+
+            <div class="ai-toolbar" aria-label="KI-Leiste">
+              <button type="button" data-action="reply">Antwort</button>
+              <button type="button" data-action="shorten">Kürzer</button>
+              <button type="button" data-action="friendly">Freundlicher</button>
+              <button type="button" data-action="professional">Professioneller</button>
+              <button type="button" data-action="translate">Deutsch/Englisch</button>
+            </div>
+          </section>
+
+          <section id="contentPanel" class="panel">
+            <div class="section-head">
+              <div>
+                <h2>Content</h2>
+                <p>Caption, Hooks, Hashtags, Kooperationen</p>
+              </div>
+              <button class="icon-button" id="dictateContent" type="button" title="Diktat in Thema">Mikro</button>
+            </div>
+
+            <div class="form-grid two">
+              <label>
+                Format
+                <select id="contentType">
+                  <option value="caption">Caption</option>
+                  <option value="hooks">Hooks</option>
+                  <option value="hashtags">Hashtags</option>
+                  <option value="offer">Angebot / Kooperation</option>
+                  <option value="briefing">Briefing</option>
+                  <option value="cancellation">Absage</option>
+                </select>
+              </label>
+              <label>
+                Kanal
+                <select id="contentChannel">
+                  <option value="Instagram Reel">Instagram Reel</option>
+                  <option value="Instagram Post">Instagram Post</option>
+                  <option value="Story">Story</option>
+                  <option value="TikTok">TikTok</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                </select>
+              </label>
+              <label>
+                Kunde / Brand
+                <select id="contentBrandSelect"></select>
+              </label>
+              <label>
+                CTA
+                <input id="contentCta" autocomplete="off" placeholder="z.B. DM schreiben">
+              </label>
+            </div>
+
+            <label>
+              Thema
+              <textarea id="contentTopic" placeholder="Kampagne, Produkt, Shooting, Zielgruppe"></textarea>
+            </label>
+
+            <label>
+              Details
+              <textarea id="contentDetails" placeholder="USPs, Preise, Deadlines, No-Gos"></textarea>
+            </label>
+
+            <div class="button-row">
+              <button class="primary-action" id="generateContent" type="button">Erstellen</button>
+              <button id="loadTemplate" type="button">Vorlage</button>
+            </div>
+          </section>
+
+          <section id="calendarPanel" class="panel">
+            <div class="section-head">
+              <div>
+                <h2>Content-Kalender</h2>
+                <p>Plan aus Themen und Brand-Profil</p>
+              </div>
+              <button class="primary-action" id="generateCalendar" type="button">Planen</button>
+            </div>
+
+            <div class="form-grid two">
+              <label>
+                Zeitraum
+                <select id="calendarRange">
+                  <option value="7">7 Tage</option>
+                  <option value="14" selected>14 Tage</option>
+                  <option value="30">30 Tage</option>
+                </select>
+              </label>
+              <label>
+                Frequenz
+                <select id="calendarFrequency">
+                  <option value="daily">Täglich</option>
+                  <option value="weekday">Werktage</option>
+                  <option value="three">3x pro Woche</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              Themenpool
+              <textarea id="calendarTopics" placeholder="Themen je Zeile oder mit Komma getrennt"></textarea>
+            </label>
+
+            <div class="calendar-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Kanal</th>
+                    <th>Format</th>
+                    <th>Thema</th>
+                    <th>Hook</th>
+                  </tr>
+                </thead>
+                <tbody id="calendarRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="profilesPanel" class="panel">
+            <div class="section-head">
+              <div>
+                <h2>Profile</h2>
+                <p>Nutzerprofil, Schreibstil und Kundenprofile</p>
+              </div>
+              <button class="primary-action" id="saveProfiles" type="button">Speichern</button>
+            </div>
+
+            <div class="section-head compact">
+              <div>
+                <h3>Nutzerprofil</h3>
+              </div>
+            </div>
+            <div class="form-grid two">
+              <label>
+                Vorname
+                <input id="ownerFirstName" autocomplete="off" placeholder="Linda">
+              </label>
+              <label>
+                Nachname
+                <input id="ownerLastName" autocomplete="off" placeholder="Hiller">
+              </label>
+              <label>
+                Geschlecht / Anredeprofil
+                <select id="ownerGender">
+                  <option value="female">weiblich</option>
+                  <option value="male">männlich</option>
+                  <option value="neutral">neutral</option>
+                </select>
+              </label>
+              <label>
+                App-Name
+                <input id="ownerAppName" autocomplete="off" placeholder="Linda Social Desk">
+              </label>
+              <label>
+                Formeller Absender
+                <input id="ownerFormalSender" autocomplete="off" placeholder="Frau Hiller">
+              </label>
+              <label>
+                Persönlicher Absender
+                <input id="ownerCasualSender" autocomplete="off" placeholder="Linda">
+              </label>
+            </div>
+
+            <label>
+              Schreibstil
+              <textarea id="styleVoice"></textarea>
+            </label>
+            <label>
+              Regeln
+              <textarea id="styleRules"></textarea>
+            </label>
+            <label>
+              Standardsignatur
+              <textarea id="styleSignature"></textarea>
+            </label>
+
+            <div class="section-head compact">
+              <div>
+                <h3>Brand-Profile</h3>
+              </div>
+              <button id="addBrand" type="button">Brand hinzufügen</button>
+            </div>
+            <div id="brandList" class="list-stack"></div>
+          </section>
+
+          <section id="settingsPanel" class="panel">
+            <div class="section-head">
+              <div>
+                <h2>Setup</h2>
+                <p>Konten, KI-Modus, Export</p>
+              </div>
+              <button class="primary-action" id="exportConfig" type="button">Export</button>
+            </div>
+
+            <div class="form-grid two">
+              <label>
+                KI-Modus
+                <select id="apiMode">
+                  <option value="local">Lokal</option>
+                  <option value="backend">Backend</option>
+                </select>
+              </label>
+              <label>
+                Backend URL
+                <input id="backendUrl" autocomplete="off" placeholder="https://.../api/generate">
+              </label>
+            </div>
+
+            <div class="focus-box">
+              <div class="list-item-header">
+                <div>
+                  <strong>Fokusmodus</strong>
+                  <p>Nur die freigegebenen Linda-Konten verwenden</p>
+                </div>
+                <label class="switch-line">
+                  <input id="allowedMailOnly" type="checkbox">
+                  Aktiv
+                </label>
+              </div>
+              <div class="form-grid two">
+                <label>
+                  Primärer Kalender
+                  <select id="primaryCalendar">
+                    <option value="icloud">iCloud Kalender</option>
+                    <option value="google">Google Kalender</option>
+                    <option value="microsoft">Microsoft Kalender</option>
+                    <option value="manual">Nur ICS-Datei</option>
+                  </select>
+                </label>
+                <label>
+                  Kalender-Modus
+                  <select id="calendarMode">
+                    <option value="ics-first">ICS zuerst, nie automatisch eintragen</option>
+                    <option value="confirm-create">Nach Bestätigung direkt eintragen</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="section-head compact">
+              <div>
+                <h3>Freigegebene Mail-Fokusliste</h3>
+              </div>
+            </div>
+            <div id="accountList" class="list-stack"></div>
+            <div class="inline-add">
+              <input id="newAccountEmail" autocomplete="off" placeholder="name@domain.at">
+              <input id="newAccountLabel" autocomplete="off" placeholder="Label">
+              <button id="addAccount" type="button">Hinzufügen</button>
+            </div>
+
+            <div class="section-head compact">
+              <div>
+                <h3>Zugriff vorbereiten</h3>
+              </div>
+            </div>
+            <div id="accessList" class="list-stack"></div>
+
+            <div class="section-head compact">
+              <div>
+                <h3>Daten</h3>
+              </div>
+            </div>
+            <div class="button-row">
+              <button id="importConfig" type="button">Import</button>
+              <button id="resetConfig" type="button">Zurücksetzen</button>
+              <input id="importFile" type="file" accept="application/json" hidden>
+            </div>
+          </section>
+        </section>
+
+        <aside class="output-area" aria-label="Entwurf">
+          <section class="output-panel">
+            <div class="section-head compact">
+              <div>
+                <h3>Entscheidung</h3>
+              </div>
+            </div>
+            <div id="decisionBox" class="summary-box">Noch keine Eingabe</div>
+          </section>
+
+          <section class="output-panel suggestion-panel">
+            <div class="section-head compact">
+              <div>
+                <h3>3 Vorschläge</h3>
+                <p id="suggestionMeta">Antwort drücken, Richtung wählen</p>
+              </div>
+            </div>
+            <div id="suggestionList" class="suggestion-list">
+              <div class="summary-box">Noch keine Vorschläge</div>
+            </div>
+          </section>
+
+          <section class="output-panel">
+            <div class="section-head">
+              <div>
+                <h2>Entwurf</h2>
+                <p id="draftMeta">Bereit</p>
+              </div>
+              <button class="icon-button" id="dictateDraft" type="button" title="Diktat in Entwurf">Mikro</button>
+            </div>
+            <textarea id="outputText" class="draft-output" placeholder="Der Entwurf erscheint hier"></textarea>
+            <div class="button-row">
+              <button class="primary-action" id="copyDraft" type="button">Kopieren</button>
+              <button id="downloadDraft" type="button">TXT</button>
+              <button id="downloadCalendarInvite" type="button">ICS</button>
+              <button id="addFollowup" type="button">Follow-up</button>
+            </div>
+          </section>
+
+          <section class="output-panel">
+            <div class="section-head compact">
+              <div>
+                <h3>Zusammenfassung</h3>
+              </div>
+              <button id="summarizeThread" type="button">Aktualisieren</button>
+            </div>
+            <div id="summaryBox" class="summary-box">Keine Daten</div>
+          </section>
+
+          <section class="output-panel">
+            <div class="section-head compact">
+              <div>
+                <h3>KI-Prompt</h3>
+              </div>
+              <button id="copyPrompt" type="button">Kopieren</button>
+            </div>
+            <textarea id="promptPreview" class="prompt-output" readonly></textarea>
+          </section>
+
+          <section class="output-panel">
+            <div class="section-head compact">
+              <div>
+                <h3>Follow-ups</h3>
+              </div>
+              <button id="clearFollowups" type="button">Leeren</button>
+            </div>
+            <div id="followupList" class="list-stack small"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
