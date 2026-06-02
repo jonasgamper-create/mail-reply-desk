@@ -9,3 +9,7 @@ build/
 .wrangler/
 .dev.vars
 coverage/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.moved-aside

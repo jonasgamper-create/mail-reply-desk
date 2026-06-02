@@ -77,6 +77,23 @@ Der pragmatische Weg ist eine PWA:
 
 Für das iPhone muss die App später auf HTTPS liegen, zum Beispiel Cloudflare Pages, Netlify, GitHub Pages oder ein eigener Server. Ein lokales `file://` ist für PWA, Service Worker und spätere API-Aufrufe nicht ausreichend.
 
+## Native iPhone-Tastatur
+
+Im Ordner `ios/` liegt jetzt ein natives iOS-Geruest:
+
+- Container-App fuer Profil/Settings
+- `MailReplyKeyboard` als Custom Keyboard Extension
+- geteiltes Profil per App Group
+- QWERTZ-Tastatur mit Schnellbuttons fuer `Antwort`, `Mail`, `Termin`, `Kurz`, `Freundlich`, `Professionell`
+
+Oeffnen:
+
+```text
+ios/MailReplyDesk.xcodeproj
+```
+
+Danach in Xcode Team/Signing setzen und auf ein iPhone builden. Details stehen in [ios/README.md](ios/README.md).
+
 ## Technische Grenze bei iOS-Tastaturen
 
 Eine echte systemweite iPhone-Tastatur braucht eine native iOS-App mit Custom Keyboard Extension. Dafür sind Xcode, Signierung und praktisch ein Apple Developer Account nötig. Custom Keyboards haben außerdem Einschränkungen: sie laufen isoliert, brauchen für Netzwerkzugriff Open Access, bekommen nicht beliebig Mailverlauf und können die Apple-Diktierfunktion nicht wie die originale Apple-Tastatur übernehmen.
