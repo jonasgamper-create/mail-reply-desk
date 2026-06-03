@@ -58,6 +58,10 @@ Details stehen in [FREE_ACCOUNT_TEST.md](FREE_ACCOUNT_TEST.md). Der Modus ist fu
 ios/scripts/use-app-group-mode.sh
 ```
 
+## Analyse und empfohlene Installationsroute
+
+Die aktuelle Analyse zum lokalen Xcode-Blocker, zur empfohlenen Xcode-Version und zu den A/B-Entscheidungen steht in [XCODE_INSTALL_ANALYSE.md](XCODE_INSTALL_ANALYSE.md).
+
 ## Wichtige Grenze
 
 Apple erlaubt einer Custom Keyboard Extension nicht, automatisch den kompletten Apple-Mail-Verlauf zu lesen. Die Tastatur kann Text einfuegen und begrenzten Textkontext sehen. Fuer perfekte Mailantworten braucht sie spaeter das Backend, das freigegebene Mailkonten Read-Only liest.
