@@ -48,7 +48,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        profile = ProfileStore.loadProfile()
+        profile = loadProfileForKeyboard()
         rebuildKeyboard()
     }
 
@@ -77,6 +77,16 @@ final class KeyboardViewController: UIInputViewController {
         ])
 
         rebuildKeyboard()
+    }
+
+    private func loadProfileForKeyboard() -> UserProfile {
+        if hasFullAccess,
+           let copied = UIPasteboard.general.string,
+           let pastedProfile = ProfileStore.decodeProfile(from: copied) {
+            ProfileStore.saveProfile(pastedProfile)
+            return pastedProfile
+        }
+        return ProfileStore.loadProfile()
     }
 
     private func rebuildKeyboard() {

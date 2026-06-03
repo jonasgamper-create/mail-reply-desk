@@ -80,9 +80,8 @@ struct SettingsView: View {
 
                 Section("Profil teilen") {
                     ShareLink("Profil teilen", item: ProfileStore.exportString(for: store.profile))
-                    Button("Profil kopieren") {
-                        UIPasteboard.general.string = ProfileStore.exportString(for: store.profile)
-                        statusMessage = "Profil kopiert."
+                    Button("Speichern und fuer Tastatur kopieren") {
+                        saveAndCopyProfile()
                     }
                     VStack(alignment: .leading) {
                         Text("Profil importieren").font(.caption).foregroundStyle(.secondary)
@@ -97,9 +96,13 @@ struct SettingsView: View {
                             statusMessage = "Import nicht erkannt."
                         }
                     }
-                    Button("Linda Standard laden", role: .destructive) {
+                    Button("Creator Standard laden") {
                         store.resetToDefault()
-                        statusMessage = "Linda Standard geladen."
+                        saveAndCopyProfile(message: "Creator Standard gespeichert.")
+                    }
+                    Button("Linda Vorlage laden") {
+                        store.loadLindaPreset()
+                        saveAndCopyProfile(message: "Linda Vorlage gespeichert.")
                     }
                     if !statusMessage.isEmpty {
                         Text(statusMessage)
@@ -121,7 +124,7 @@ struct SettingsView: View {
                 Section("Tastatur aktivieren") {
                     Text("1. iPhone Einstellungen oeffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufuegen\n4. Bei Bedarf Vollen Zugriff erlauben")
                         .font(.footnote)
-                    Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Tastatur nutzt sichere Standardwerte, bis App Groups aktiv sind.")
+                    Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Speichern kopiert das Profil fuer die Tastatur. Dafuer in iOS bei der Tastatur Vollen Zugriff erlauben.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Link("Apple Hinweis zu Tastaturen", destination: URL(string: "https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard")!)
@@ -130,10 +133,16 @@ struct SettingsView: View {
             .navigationTitle(store.profile.appName.isEmpty ? "Mail Reply Desk" : store.profile.appName)
             .toolbar {
                 Button("Speichern") {
-                    store.save()
+                    saveAndCopyProfile()
                 }
             }
         }
+    }
+
+    private func saveAndCopyProfile(message: String = "Gespeichert. Profil ist fuer die Tastatur kopiert.") {
+        store.save()
+        UIPasteboard.general.string = ProfileStore.exportString(for: store.profile)
+        statusMessage = message
     }
 }
 

@@ -21,6 +21,26 @@ struct UserProfile: Codable, Equatable {
     var backendURL: String
 
     static let `default` = UserProfile(
+        firstName: "Creator",
+        lastName: "Profil",
+        gender: "neutral",
+        appName: "Mail Reply Desk",
+        formalSender: "Creator Team",
+        casualSender: "Creator",
+        roleTitle: "Creator / Social Media Manager",
+        niche: "Content Creation, Social Media, Brand-Kooperationen",
+        services: "Reels, Stories, UGC, Shootings, Kampagnenkonzepte, Content-Kalender",
+        mediaKitURL: "",
+        socialLinks: "",
+        rateCardNote: "Preise erst nach Briefing, Deliverables, Nutzungsrechten, Laufzeit und Budgetrahmen fixieren.",
+        usageRightsPolicy: "Whitelisting/Spark Ads, Paid Usage, Exklusivitaet und Laufzeit immer separat klaeren.",
+        briefingChecklist: "Kampagnenziel\nDeliverables\nTiming/Deadline\nBudgetrahmen\nNutzungsrechte/Laufzeit\nExklusivitaet\nFreigabeschleifen\nReporting",
+        brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Verguetung, keine automatischen Zusagen, keine Preise ohne Scope",
+        styleVoice: "klar, warm, professionell, nicht kuenstlich",
+        backendURL: ""
+    )
+
+    static let linda = UserProfile(
         firstName: "Linda",
         lastName: "Hiller",
         gender: "female",
@@ -147,10 +167,17 @@ final class ProfileStore: ObservableObject {
         guard let data = try? JSONEncoder().encode(profile) else { return }
         Self.defaults.set(data, forKey: Self.profileKey)
         UserDefaults.standard.set(data, forKey: Self.profileKey)
+        Self.defaults.synchronize()
+        UserDefaults.standard.synchronize()
     }
 
     func resetToDefault() {
         profile = .default
+        save()
+    }
+
+    func loadLindaPreset() {
+        profile = .linda
         save()
     }
 
@@ -171,6 +198,14 @@ final class ProfileStore: ObservableObject {
             return profile
         }
         return .default
+    }
+
+    static func saveProfile(_ profile: UserProfile) {
+        guard let data = try? JSONEncoder().encode(profile) else { return }
+        defaults.set(data, forKey: profileKey)
+        UserDefaults.standard.set(data, forKey: profileKey)
+        defaults.synchronize()
+        UserDefaults.standard.synchronize()
     }
 
     static func exportString(for profile: UserProfile) -> String {
