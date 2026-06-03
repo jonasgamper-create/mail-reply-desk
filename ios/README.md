@@ -44,6 +44,20 @@ Noch nicht enthalten:
 5. `Mail Reply Keyboard` hinzufuegen.
 6. Optional `Vollen Zugriff erlauben`.
 
+## Kostenloser Apple-ID-Test
+
+Wenn Xcode mit `App Groups` oder Signing wegen einer Personal Team-ID blockiert, zuerst den Free-Account-Modus verwenden:
+
+```bash
+ios/scripts/use-free-personal-team-mode.sh
+```
+
+Details stehen in [FREE_ACCOUNT_TEST.md](FREE_ACCOUNT_TEST.md). Der Modus ist fuer den ersten Tastaturtest gedacht. Fuer Profil-Sync zwischen Settings-App und Tastatur danach wieder App Groups aktivieren:
+
+```bash
+ios/scripts/use-app-group-mode.sh
+```
+
 ## Wichtige Grenze
 
 Apple erlaubt einer Custom Keyboard Extension nicht, automatisch den kompletten Apple-Mail-Verlauf zu lesen. Die Tastatur kann Text einfuegen und begrenzten Textkontext sehen. Fuer perfekte Mailantworten braucht sie spaeter das Backend, das freigegebene Mailkonten Read-Only liest.
