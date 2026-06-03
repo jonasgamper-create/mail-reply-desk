@@ -1,7 +1,10 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @StateObject private var store = ProfileStore()
+    @State private var importText = ""
+    @State private var statusMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -75,6 +78,36 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("Profil teilen") {
+                    ShareLink("Profil teilen", item: ProfileStore.exportString(for: store.profile))
+                    Button("Profil kopieren") {
+                        UIPasteboard.general.string = ProfileStore.exportString(for: store.profile)
+                        statusMessage = "Profil kopiert."
+                    }
+                    VStack(alignment: .leading) {
+                        Text("Profil importieren").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $importText)
+                            .frame(minHeight: 110)
+                    }
+                    Button("Importieren") {
+                        if store.importProfile(from: importText) {
+                            importText = ""
+                            statusMessage = "Profil importiert."
+                        } else {
+                            statusMessage = "Import nicht erkannt."
+                        }
+                    }
+                    Button("Linda Standard laden", role: .destructive) {
+                        store.resetToDefault()
+                        statusMessage = "Linda Standard geladen."
+                    }
+                    if !statusMessage.isEmpty {
+                        Text(statusMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section("Backend spaeter") {
                     TextField("Backend URL", text: $store.profile.backendURL)
                         .keyboardType(.URL)
@@ -86,8 +119,11 @@ struct SettingsView: View {
                 }
 
                 Section("Tastatur aktivieren") {
-                    Text("1. iPhone Einstellungen oeffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufuegen\n4. Optional: Vollen Zugriff erlauben, wenn Backend und geteilte Einstellungen genutzt werden sollen")
+                    Text("1. iPhone Einstellungen oeffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufuegen\n4. Bei Bedarf Vollen Zugriff erlauben")
                         .font(.footnote)
+                    Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Tastatur nutzt sichere Standardwerte, bis App Groups aktiv sind.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                     Link("Apple Hinweis zu Tastaturen", destination: URL(string: "https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard")!)
                 }
             }

@@ -149,6 +149,18 @@ final class ProfileStore: ObservableObject {
         UserDefaults.standard.set(data, forKey: Self.profileKey)
     }
 
+    func resetToDefault() {
+        profile = .default
+        save()
+    }
+
+    func importProfile(from text: String) -> Bool {
+        guard let imported = Self.decodeProfile(from: text) else { return false }
+        profile = imported
+        save()
+        return true
+    }
+
     static func loadProfile() -> UserProfile {
         if let data = defaults.data(forKey: profileKey),
            let profile = try? JSONDecoder().decode(UserProfile.self, from: data) {
@@ -159,6 +171,33 @@ final class ProfileStore: ObservableObject {
             return profile
         }
         return .default
+    }
+
+    static func exportString(for profile: UserProfile) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(profile),
+              let json = String(data: data, encoding: .utf8) else {
+            return ""
+        }
+        return "Mail Reply Desk Profile\n\(json)"
+    }
+
+    static func decodeProfile(from text: String) -> UserProfile? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let jsonText: String
+        if let start = trimmed.firstIndex(of: "{"),
+           let end = trimmed.lastIndex(of: "}") {
+            jsonText = String(trimmed[start...end])
+        } else {
+            jsonText = trimmed
+        }
+        guard let data = jsonText.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(UserProfile.self, from: data)
+    }
+
+    static var isAppGroupAvailable: Bool {
+        UserDefaults(suiteName: appGroupID) != nil
     }
 
     static var defaults: UserDefaults {

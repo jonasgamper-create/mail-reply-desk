@@ -11,7 +11,7 @@ Damit der erste iPhone-Test trotzdem moeglich ist, gibt es einen Free-Account-Mo
 
 - App Groups werden aus den Entitlements entfernt.
 - Die Tastatur kann lokal mit Default-Profil starten.
-- Profil-Sync zwischen Settings-App und Tastatur ist in diesem Modus nicht garantiert.
+- Profil-Sync zwischen Settings-App und Tastatur ist in diesem Modus nicht garantiert; Profil-Export/Import per Copy/Paste bleibt nutzbar.
 - Automatisches Senden bleibt weiterhin nicht vorhanden.
 
 ## Free-Account-Modus aktivieren
@@ -26,6 +26,12 @@ Danach in Xcode:
 2. Target `MailReplyDesk` und `MailReplyKeyboard` jeweils auf deine Personal Team-ID setzen.
 3. Auf echtes iPhone builden.
 4. Tastatur in iOS Einstellungen aktivieren.
+
+Wenn Xcode bereits mit Apple-ID angemeldet ist, kann der Build und die Installation auch automatisch laufen:
+
+```bash
+ios/scripts/build-install-personal-team.sh
+```
 
 ## App-Group-Modus wiederherstellen
 

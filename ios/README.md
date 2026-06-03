@@ -4,17 +4,19 @@ Dieses iOS-Geruest enthaelt:
 
 - `MailReplyDesk`: Container-App mit Settings.
 - `MailReplyKeyboard`: iOS Custom Keyboard Extension.
-- Geteiltes Profil ueber App Group.
+- Profil in der App, im Free-Testmodus mit stabilem Tastatur-Default; geteilter Sync spaeter ueber App Group.
 
 ## Aktueller Stand
 
-Die Tastatur ist eine erste native Version:
+Die Tastatur ist eine native Testversion fuer den direkten iPhone-Einsatz:
 
 - Nutzerprofil in der App aenderbar.
+- Profil kann kopiert, geteilt und per Copy/Paste importiert werden.
 - Vorname, Nachname, Geschlecht/Anredeprofil, App-Name, formeller und persoenlicher Absender.
 - Creator-Profil mit Rolle, Nische, Leistungen, Media-Kit, Social Links, Preisregel, Nutzungsrechten und Briefing-Checkliste.
-- Keyboard Extension mit QWERTZ-Layout.
-- Buttons: `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`.
+- Keyboard Extension mit kompaktem QWERTZ-Layout, `ABC`, `123` und `Tools`.
+- Buttons: `Antwort`, `Mail`, `Termin`, `3 Entw.`, `Kuerzer`, `Freundl.`, `Profi`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Absage`, `Rechnung`, `Signatur`.
+- Umschalter fuer `DE/EN` und `Du/Sie` direkt in der Tastatur.
 - Text wird direkt in Apple Mail, Gmail, WhatsApp usw. eingefuegt, sofern Drittanbieter-Tastaturen erlaubt sind.
 
 Noch nicht enthalten:
@@ -34,6 +36,12 @@ Noch nicht enthalten:
 7. App Group pruefen: `group.com.jonasgamper.mailreplydesk`.
 8. Wenn Xcode eine andere Bundle ID verlangt, Bundle IDs und App Group eindeutig anpassen.
 9. Auf ein echtes iPhone builden.
+
+Oder lokal automatisch bauen und installieren:
+
+```bash
+ios/scripts/build-install-personal-team.sh
+```
 
 ## iPhone aktivieren
 
@@ -65,6 +73,8 @@ Die aktuelle Analyse zum lokalen Xcode-Blocker, zur empfohlenen Xcode-Version un
 ## Wichtige Grenze
 
 Apple erlaubt einer Custom Keyboard Extension nicht, automatisch den kompletten Apple-Mail-Verlauf zu lesen. Die Tastatur kann Text einfuegen und begrenzten Textkontext sehen. Fuer perfekte Mailantworten braucht sie spaeter das Backend, das freigegebene Mailkonten Read-Only liest.
+
+Apple erlaubt Drittanbieter-Tastaturen ausserdem keinen direkten Start der System-Diktierfunktion. Der Button `Diktat` wechselt deshalb zur naechsten Tastatur; dort kann die Apple-Diktierfunktion genutzt werden.
 
 Quellen:
 
