@@ -1,0 +1,74 @@
+# Message Access Architecture
+
+Ziel: Die Tastatur soll im Alltag schnell schreiben. Echter Zugriff auf Nachrichten darf nicht in der Keyboard Extension versteckt werden, sondern muss explizit und nachvollziehbar passieren.
+
+## P0: Tastatur ohne Kontozugriff
+
+Status: in der Keyboard Extension umgesetzt.
+
+- `Auto`, `Privat`, `Arbeit` als sichtbarer Modus.
+- Privat-Layout für WhatsApp/DM/Alltag.
+- Arbeit-Layout für Mail, Kollegen, Kooperationen und Kunden.
+- `Check` erzeugt eine kurze Ableitung: Modus, Intention, Stil, Antwortlogik, Kontext.
+- `Übersetz.` erzeugt eine Antwort in der jeweils anderen Sprache mit gleichem Kontext.
+- Lernlogik: Nutzung von `Kurz`, `Warm/Freundlich`, `Klar/Profi` wird lokal gezählt und beeinflusst bevorzugte Antworten.
+- Kein automatisches Senden.
+
+Grenze: Die Tastatur sieht nur den Text im aktuellen Eingabefeld, kurze System-Kontexte und optional Clipboard bei Vollzugriff. Sie kann WhatsApp- oder Mail-Verläufe nicht frei auslesen.
+
+## P1: Share Extension für perfekten Kontext
+
+Empfohlener nächster Schritt.
+
+Eine Share Extension nimmt bewusst geteilten Text entgegen:
+
+1. Linda markiert oder teilt eine Mail, WhatsApp-Nachricht oder DM.
+2. Sie wählt `Mail Reply Desk`.
+3. Die App speichert den Text lokal als letzten Kontext.
+4. Die Tastatur liest diesen Kontext und erstellt eine passende Antwort.
+
+Technische Umsetzung:
+
+- iOS Share Extension mit `NSExtensionActivationSupportsText`.
+- Speicherung in App Group, wenn ein bezahlter Apple Developer Account/App Groups verfügbar ist.
+- Ohne App Group: Übergabe über Container-App und Clipboard-Fallback.
+- Kontext-Daten lokal halten, automatisch nach kurzer Zeit löschen.
+- Keine Senderechte, keine heimliche Hintergrundüberwachung.
+
+Warum das wichtig ist: Diese Lösung ist deutlich näher an echter Nachrichtenerkennung, bleibt aber kontrolliert und App-Store-konform.
+
+## P2: Mail-/Kalender-Backend
+
+Für automatische Mailableitung ohne Kopieren.
+
+Gmail / Google Workspace:
+
+- `gmail.readonly` zum Lesen von Nachrichten.
+- `gmail.compose` nur falls echte Gmail-Entwürfe erstellt werden sollen.
+- Keine `gmail.send`-Rechte.
+
+iCloud:
+
+- Mail über IMAP mit app-spezifischem Passwort.
+- Kalender zuerst als `.ics`; später CalDAV nur nach Bestätigung.
+
+WhatsApp:
+
+- Private WhatsApp-App bietet keinen sauberen API-Zugriff auf normale Chats.
+- Offizieller Zugriff geht über WhatsApp Business Platform / Cloud API mit Webhooks.
+- Das ist für private Chats meist zu schwergewichtig und kann eine eigene Business-Nummer erfordern.
+
+## Sicherheitsregeln
+
+- Draft-only: nie automatisch senden.
+- Zugriff sichtbar erklären.
+- Token verschlüsselt speichern, nie im Frontend.
+- Audit-Log: Konto verbunden, Nachricht gelesen, Entwurf erzeugt.
+- Sensitive Inhalte im Keyboard ignorieren: Passwörter, TAN, OTP, 2FA, Kreditkarten.
+- Kontext nach Nutzung löschen oder mit kurzer TTL speichern.
+
+## Quellen
+
+- Apple App Extension Keys: `NSExtensionActivationSupportsText`
+- Google Gmail API Scopes: `gmail.readonly`, `gmail.compose`
+- WhatsApp Business Platform / Cloud API: eingehende Nachrichten nur per Webhook/API, nicht aus der privaten WhatsApp-App

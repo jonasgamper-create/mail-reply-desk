@@ -152,32 +152,68 @@ final class KeyboardViewController: UIInputViewController {
             rootStack.addArrangedSubview(makeKeyRow(["#+=", ".", ",", "?", "!", "'", "\"", "delete"]))
             rootStack.addArrangedSubview(makeBottomRow())
         case .tools:
-            rootStack.addArrangedSubview(makeToolRow([
+            makeAdaptiveToolRows().forEach { rootStack.addArrangedSubview($0) }
+            rootStack.addArrangedSubview(makeToolsBottomRow())
+        }
+    }
+
+    private func makeAdaptiveToolRows() -> [UIStackView] {
+        let mode = effectiveConversationMode(for: currentContext())
+        if mode == .privateChat {
+            return [
+                makeToolRow([
+                    ("Antwort", #selector(insertReplyDraft)),
+                    ("Ja", #selector(insertApproveDraft)),
+                    ("Nein", #selector(insertDeclineDraft)),
+                    ("Danke", #selector(insertThanksDraft))
+                ]),
+                makeToolRow([
+                    ("Kurz", #selector(insertShortDraft)),
+                    ("Warm", #selector(insertFriendlyDraft)),
+                    ("Klar", #selector(insertProfessionalDraft)),
+                    ("Sorry", #selector(insertSorryDraft))
+                ]),
+                makeToolRow([
+                    ("Treffen", #selector(insertPrivateMeetingDraft)),
+                    ("Später", #selector(insertLaterDraft)),
+                    ("Übersetz.", #selector(insertTranslatedReplyDraft)),
+                    ("Check", #selector(insertAnalysisDraft))
+                ]),
+                makeToolRow([
+                    ("3x", #selector(insertThreeDrafts)),
+                    ("Diktat", #selector(openDictationKeyboard)),
+                    ("ABC", #selector(showLetters)),
+                    ("⌫", #selector(deleteBackward))
+                ])
+            ]
+        }
+
+        return [
+            makeToolRow([
                 ("Antwort", #selector(insertReplyDraft)),
-                ("Ja", #selector(insertApproveDraft)),
-                ("Nein", #selector(insertDeclineDraft)),
-                ("Termin", #selector(insertEventDraft))
-            ]))
-            rootStack.addArrangedSubview(makeToolRow([
+                ("Termin", #selector(insertEventDraft)),
+                ("Preis", #selector(insertPricingDraft)),
+                ("Koop", #selector(insertCollaborationDraft))
+            ]),
+            makeToolRow([
                 ("3x", #selector(insertThreeDrafts)),
                 ("Check", #selector(insertAnalysisDraft)),
                 ("Freundl.", #selector(insertFriendlyDraft)),
                 ("Profi", #selector(insertProfessionalDraft))
-            ]))
-            rootStack.addArrangedSubview(makeToolRow([
-                ("Koop", #selector(insertCollaborationDraft)),
-                ("Preis", #selector(insertPricingDraft)),
+            ]),
+            makeToolRow([
                 ("Briefing", #selector(insertBriefingDraft)),
                 ("Follow-up", #selector(insertFollowUpDraft)),
-            ]))
-            rootStack.addArrangedSubview(makeToolRow([
-                ("Mail", #selector(insertNewMailDraft)),
                 ("Rechnung", #selector(insertInvoiceDraft)),
-                ("MediaKit", #selector(insertMediaKitDraft)),
+                ("MediaKit", #selector(insertMediaKitDraft))
+            ]),
+            makeToolRow([
+                ("Mail", #selector(insertNewMailDraft)),
+                ("Kürzer", #selector(insertShortDraft)),
+                ("Übersetz.", #selector(insertTranslatedReplyDraft)),
                 ("Signatur", #selector(insertSignature))
-            ]))
-            rootStack.addArrangedSubview(makeToolsBottomRow())
-        }
+            ])
+        ]
     }
 
     private func makeHeaderRow() -> UIStackView {
@@ -237,18 +273,24 @@ final class KeyboardViewController: UIInputViewController {
         let row = horizontalRow()
         items.forEach { title, selector in
             let button = makeButton(title, weight: .medium)
-            if ["Antwort", "Ja", "Nein", "Koop", "Termin", "Mail"].contains(title) {
+            if ["Antwort", "Ja", "Nein", "Koop", "Termin", "Mail", "Danke", "Treffen", "Preis"].contains(title) {
                 button.configuration?.baseBackgroundColor = UIColor.systemBlue
                 button.configuration?.baseForegroundColor = UIColor.white
             }
             if title == "Nein" {
                 button.configuration?.baseBackgroundColor = UIColor.systemGray
                 button.configuration?.baseForegroundColor = UIColor.white
+            } else if ["Warm", "Freundl."].contains(title) {
+                button.configuration?.baseBackgroundColor = UIColor.systemGreen
+                button.configuration?.baseForegroundColor = UIColor.white
             } else if title == "Check" {
                 button.configuration?.baseBackgroundColor = UIColor.systemTeal
                 button.configuration?.baseForegroundColor = UIColor.white
-            } else if title == "Profi" {
+            } else if ["Profi", "Klar"].contains(title) {
                 button.configuration?.baseBackgroundColor = UIColor.systemIndigo
+                button.configuration?.baseForegroundColor = UIColor.white
+            } else if title == "Übersetz." {
+                button.configuration?.baseBackgroundColor = UIColor.systemPurple
                 button.configuration?.baseForegroundColor = UIColor.white
             }
             button.addTarget(self, action: selector, for: .touchUpInside)
@@ -1019,6 +1061,69 @@ final class KeyboardViewController: UIInputViewController {
         ]
         deleteNotesIfNeeded(rawNotes)
         insertText(drafts.joined(separator: "\n\n---\n\n"))
+    }
+
+    @objc private func insertThanksDraft() {
+        let rawNotes = notesBeforeInputForReplacement()
+        _ = contextForDraft(rawNotes: rawNotes)
+        deleteNotesIfNeeded(rawNotes)
+        registerUse(kind: .friendly)
+        if language == .english {
+            insertText("Thank you, I really appreciate it. I will get back to you shortly if anything else is open.")
+        } else {
+            insertText("Danke dir, das freut mich. Ich melde mich kurz, falls noch etwas offen ist.")
+        }
+    }
+
+    @objc private func insertSorryDraft() {
+        let rawNotes = notesBeforeInputForReplacement()
+        _ = contextForDraft(rawNotes: rawNotes)
+        deleteNotesIfNeeded(rawNotes)
+        registerUse(kind: .friendly)
+        if language == .english {
+            insertText("Sorry, that took a little longer. Thanks for your patience, I will take care of it now.")
+        } else {
+            insertText("Sorry, das hat etwas länger gedauert. Danke dir fürs Warten, ich kümmere mich jetzt darum.")
+        }
+    }
+
+    @objc private func insertPrivateMeetingDraft() {
+        let rawNotes = notesBeforeInputForReplacement()
+        let context = contextForDraft(rawNotes: rawNotes)
+        deleteNotesIfNeeded(rawNotes)
+        registerUse(kind: .event)
+        if language == .english {
+            insertText("Sounds good. Send me when and where, and I will check what works for me.")
+        } else if let context, normalized(context).contains("morgen") {
+            insertText("Morgen passt grundsätzlich. Sag mir bitte kurz Uhrzeit und Ort, dann richte ich mich danach.")
+        } else {
+            insertText("Klingt gut. Sag mir bitte kurz wann und wo, dann schaue ich, wie es bei mir passt.")
+        }
+    }
+
+    @objc private func insertLaterDraft() {
+        let rawNotes = notesBeforeInputForReplacement()
+        _ = contextForDraft(rawNotes: rawNotes)
+        deleteNotesIfNeeded(rawNotes)
+        registerUse(kind: .short)
+        if language == .english {
+            insertText("I saw it. I will reply properly a little later.")
+        } else {
+            insertText("Hab es gesehen. Ich antworte dir später in Ruhe.")
+        }
+    }
+
+    @objc private func insertTranslatedReplyDraft() {
+        let rawNotes = notesBeforeInputForReplacement()
+        let context = contextForDraft(rawNotes: rawNotes)
+        let kind = bestKind(for: context ?? currentContext())
+        let previousLanguage = language
+        language.toggle()
+        let draft = makeDraft(kind: kind, contextOverride: context)
+        language = previousLanguage
+        deleteNotesIfNeeded(rawNotes)
+        registerUse(kind: kind)
+        insertText(draft)
     }
 
     @objc private func insertAnalysisDraft() {

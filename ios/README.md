@@ -15,7 +15,9 @@ Die Tastatur ist eine native Testversion fuer den direkten iPhone-Einsatz:
 - Vorname, Nachname, Geschlecht/Anredeprofil, App-Name, formeller und persoenlicher Absender.
 - Creator-Profil mit Rolle, Nische, Leistungen, Media-Kit, Social Links, Preisregel, Nutzungsrechten und Briefing-Checkliste.
 - Keyboard Extension mit kompaktem QWERTZ-Layout, `ABC`, `123` und `Tools`.
-- Buttons: `Antwort`, `Mail`, `Termin`, `3 Entw.`, `Kuerzer`, `Freundl.`, `Profi`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Absage`, `Rechnung`, `Signatur`.
+- Sichtbarer Modus `Auto`, `Privat`, `Arbeit`.
+- Adaptive Tools: privat mit `Danke`, `Sorry`, `Treffen`, `Spaeter`, `Uebersetz.`; Arbeit mit `Termin`, `Preis`, `Koop`, `Briefing`, `Follow-up`, `Rechnung`, `MediaKit`.
+- `Check` erzeugt eine kurze Ableitung aus Kontext, Stil und Antwortlogik.
 - Umschalter fuer `DE/EN` und `Du/Sie` direkt in der Tastatur.
 - Text wird direkt in Apple Mail, Gmail, WhatsApp usw. eingefuegt, sofern Drittanbieter-Tastaturen erlaubt sind.
 
@@ -24,6 +26,7 @@ Noch nicht enthalten:
 - echtes Gmail-Read-Only-Backend.
 - iCloud CalDAV.
 - echte Thread-Erkennung aus Mail.
+- Share Extension fuer bewusst geteilten Nachrichtentext.
 
 ## Xcode Schritte
 
@@ -69,6 +72,8 @@ ios/scripts/use-app-group-mode.sh
 ## Analyse und empfohlene Installationsroute
 
 Die aktuelle Analyse zum lokalen Xcode-Blocker, zur empfohlenen Xcode-Version und zu den A/B-Entscheidungen steht in [XCODE_INSTALL_ANALYSE.md](XCODE_INSTALL_ANALYSE.md).
+
+Die Architektur fuer Nachrichtenzugriff, Share Extension, Gmail Read-only und WhatsApp-Grenzen steht in [MESSAGE_ACCESS_ARCHITECTURE.md](MESSAGE_ACCESS_ARCHITECTURE.md).
 
 ## Wichtige Grenze
 
