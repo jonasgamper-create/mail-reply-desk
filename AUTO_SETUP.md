@@ -45,6 +45,14 @@ https://www.googleapis.com/auth/gmail.readonly
 
 Es gibt keine Senderechte.
 
+## iPhone Backend im WLAN
+
+```bash
+scripts/start-phone-backend.sh
+```
+
+Das Skript startet das Gmail-Backend mit `HOST=0.0.0.0`. Beim Start erscheinen `iPhone Backend URL`-Zeilen. Eine davon in der iPhone-App unter `Gmail Read-only > Backend URL` eintragen.
+
 ## iPhone Build/Installation
 
 ```bash

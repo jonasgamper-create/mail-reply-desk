@@ -42,6 +42,29 @@ GET /gmail/threads/:id
 
 `/gmail/threads/:id` liefert den vollständigen Verlauf als `contextText`, damit die Web-App ohne Copy/Paste einen Antwortkontext übernehmen kann.
 
+## iPhone im gleichen WLAN
+
+Für die iPhone-App muss das Backend im lokalen Netzwerk erreichbar sein. Dafür in `backend/.env` setzen:
+
+```text
+HOST=0.0.0.0
+```
+
+Dann starten:
+
+```bash
+cd backend
+npm start
+```
+
+Beim Start werden `iPhone Backend URL`-Zeilen ausgegeben, z.B.:
+
+```text
+iPhone Backend URL: http://192.168.1.20:8787
+```
+
+Diese URL in der iPhone-App unter `Gmail Read-only > Backend URL` eintragen. Wichtig: Google OAuth am besten zuerst am Mac abschließen, weil der Redirect auf `http://127.0.0.1:8787/oauth/google/callback` zeigt. Danach kann das iPhone über die Mac-IP Mails laden.
+
 ## Scopes
 
 Aktuell wird nur dieser Scope verwendet:

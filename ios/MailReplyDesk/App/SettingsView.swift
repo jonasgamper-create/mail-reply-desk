@@ -3,6 +3,7 @@ import UIKit
 
 struct SettingsView: View {
     @StateObject private var store = ProfileStore()
+    @StateObject private var gmail = GmailInboxViewModel()
     @State private var importText = ""
     @State private var statusMessage = ""
 
@@ -119,14 +120,75 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Backend spaeter") {
+                Section("Gmail Read-only") {
                     TextField("Backend URL", text: $store.profile.backendURL)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    Text("Aktuell erzeugt die Tastatur lokale Entwürfe. Für echte automatische Mail-Erkennung wird später das Read-Only-Mail-Backend verbunden.")
+                    TextField("Gmail Suche", text: $store.profile.gmailQuery)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    HStack {
+                        Button("Status") {
+                            store.save()
+                            Task { await gmail.checkStatus(baseURL: store.profile.backendURL) }
+                        }
+                        Button("Verbinden") {
+                            store.save()
+                            gmail.openOAuth(baseURL: store.profile.backendURL)
+                        }
+                        Button("Mails laden") {
+                            store.save()
+                            Task { await gmail.loadMessages(baseURL: store.profile.backendURL, query: activeGmailQuery) }
+                        }
+                    }
+                    .disabled(gmail.isLoading)
+
+                    if gmail.isLoading {
+                        ProgressView()
+                    }
+
+                    Text(gmail.statusText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+
+                    if !gmail.importedSubject.isEmpty {
+                        Text("Übernommen: \(gmail.importedSubject)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Text("Am iPhone hier die Mac-IP eintragen, z.B. http://192.168.1.20:8787. OAuth am besten zuerst am Mac verbinden; das iPhone lädt danach über Read-only.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    ForEach(gmail.messages) { message in
+                        Button {
+                            store.save()
+                            Task { await gmail.importThread(message, baseURL: store.profile.backendURL) }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(message.subjectLine)
+                                    .font(.headline)
+                                    .lineLimit(2)
+                                Text(message.senderLine)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                if !message.previewLine.isEmpty {
+                                    Text(message.previewLine)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(3)
+                                }
+                                if gmail.selectedThreadId == message.threadId {
+                                    Text("Für Tastatur bereit")
+                                        .font(.caption)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Section("Tastatur aktivieren") {
@@ -151,6 +213,11 @@ struct SettingsView: View {
         store.save()
         UIPasteboard.general.string = ProfileStore.exportString(for: store.profile)
         statusMessage = message
+    }
+
+    private var activeGmailQuery: String {
+        let query = store.profile.gmailQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query.isEmpty ? UserProfile.default.gmailQuery : query
     }
 }
 

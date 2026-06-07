@@ -20,6 +20,7 @@ struct UserProfile: Codable, Equatable {
     var styleVoice: String
     var learningNotes: String
     var backendURL: String
+    var gmailQuery: String
 
     static let `default` = UserProfile(
         firstName: "Creator",
@@ -39,7 +40,8 @@ struct UserProfile: Codable, Equatable {
         brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Vergütung, keine automatischen Zusagen, keine Preise ohne Scope",
         styleVoice: "klar, warm, professionell, kurz, nicht künstlich",
         learningNotes: "Antworten kurz halten. Erst Briefing, Scope, Timing, Budget und Nutzungsrechte klären. Keine Preise ohne vollständigen Scope zusagen.",
-        backendURL: ""
+        backendURL: "",
+        gmailQuery: "to:info@jonnyandlinda.com newer_than:30d"
     )
 
     static let linda = UserProfile(
@@ -60,7 +62,8 @@ struct UserProfile: Codable, Equatable {
         brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Vergütung, keine automatischen Zusagen, keine Preise ohne Scope",
         styleVoice: "klar, warm, professionell, kurz, nicht künstlich",
         learningNotes: "Linda klingt freundlich, direkt und professionell. Kurz antworten, nie automatisch zusagen, bei Kooperationen zuerst Briefing, Budget und Nutzungsrechte klären.",
-        backendURL: ""
+        backendURL: "",
+        gmailQuery: "to:info@jonnyandlinda.com newer_than:30d"
     )
 
     init(
@@ -81,7 +84,8 @@ struct UserProfile: Codable, Equatable {
         brandSafetyNoGos: String,
         styleVoice: String,
         learningNotes: String,
-        backendURL: String
+        backendURL: String,
+        gmailQuery: String
     ) {
         self.firstName = firstName
         self.lastName = lastName
@@ -101,6 +105,7 @@ struct UserProfile: Codable, Equatable {
         self.styleVoice = styleVoice
         self.learningNotes = learningNotes
         self.backendURL = backendURL
+        self.gmailQuery = gmailQuery
     }
 
     enum CodingKeys: String, CodingKey {
@@ -122,6 +127,7 @@ struct UserProfile: Codable, Equatable {
         case styleVoice
         case learningNotes
         case backendURL
+        case gmailQuery
     }
 
     init(from decoder: Decoder) throws {
@@ -145,6 +151,7 @@ struct UserProfile: Codable, Equatable {
         styleVoice = try values.decodeIfPresent(String.self, forKey: .styleVoice) ?? fallback.styleVoice
         learningNotes = try values.decodeIfPresent(String.self, forKey: .learningNotes) ?? fallback.learningNotes
         backendURL = try values.decodeIfPresent(String.self, forKey: .backendURL) ?? fallback.backendURL
+        gmailQuery = try values.decodeIfPresent(String.self, forKey: .gmailQuery) ?? fallback.gmailQuery
     }
 
     var fullName: String {

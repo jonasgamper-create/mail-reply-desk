@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
+import { networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 loadDotEnv(join(__dirname, ".env"));
 
 const PORT = Number(process.env.PORT || 8787);
+const HOST = process.env.HOST || "127.0.0.1";
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `http://127.0.0.1:${PORT}/oauth/google/callback`;
@@ -78,8 +80,11 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`Mail Reply Desk Gmail backend: http://127.0.0.1:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Mail Reply Desk Gmail backend: http://${HOST}:${PORT}`);
+  if (HOST === "0.0.0.0") {
+    localNetworkURLs(PORT).forEach((url) => console.log(`iPhone Backend URL: ${url}`));
+  }
   console.log("Login: /auth/google");
 });
 
@@ -390,4 +395,11 @@ function splitEnvList(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function localNetworkURLs(port) {
+  return Object.values(networkInterfaces())
+    .flat()
+    .filter((item) => item && item.family === "IPv4" && !item.internal)
+    .map((item) => `http://${item.address}:${port}`);
 }

@@ -119,6 +119,7 @@ Für das iPhone muss die App später auf HTTPS liegen, zum Beispiel Cloudflare P
 Im Ordner `ios/` liegt jetzt ein natives iOS-Gerüst:
 
 - Container-App für Profil/Settings
+- Gmail Read-only Sektion zum Laden echter Threads über das lokale Backend
 - `MailReplyKeyboard` als Custom Keyboard Extension
 - geteiltes Profil per App Group
 - QWERTZ-Tastatur mit Schnellbuttons für `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`
@@ -131,6 +132,14 @@ ios/MailReplyDesk.xcodeproj
 ```
 
 Danach in Xcode Team/Signing setzen und auf ein iPhone builden. Details stehen in [ios/README.md](ios/README.md).
+
+Für Gmail auf dem iPhone:
+
+```bash
+scripts/start-phone-backend.sh
+```
+
+Die ausgegebene `iPhone Backend URL` in der iPhone-App unter `Gmail Read-only > Backend URL` eintragen. Danach `Status`, `Mails laden` und einen Thread antippen. Der Thread ist dann für die Tastatur über `Antwort`, `3x` oder `Check` verfügbar.
 
 ## Technische Grenze bei iOS-Tastaturen
 
