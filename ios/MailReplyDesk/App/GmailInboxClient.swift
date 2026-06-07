@@ -75,14 +75,25 @@ enum GmailInboxError: LocalizedError {
 @MainActor
 final class GmailInboxViewModel: ObservableObject {
     @Published var statusText = "Nicht verbunden"
+    @Published var isConfigured = false
+    @Published var isConnected = false
     @Published var messages: [GmailInboxMessage] = []
     @Published var selectedThreadId = ""
     @Published var isLoading = false
     @Published var importedSubject = ""
+    @Published var importedContextPreview = ""
+
+    var statusBadge: String {
+        if isConnected { return "Verbunden" }
+        if isConfigured { return "OAuth offen" }
+        return "Setup fehlt"
+    }
 
     func checkStatus(baseURL: String) async {
         await runLoading {
             let status: GmailInboxStatus = try await request(baseURL: baseURL, path: "/gmail/status")
+            isConfigured = status.configured
+            isConnected = status.connected
             statusText = status.message
         }
     }
@@ -110,6 +121,7 @@ final class GmailInboxViewModel: ObservableObject {
             messages = response.messages
             selectedThreadId = ""
             importedSubject = ""
+            importedContextPreview = ""
             statusText = response.messages.isEmpty ? "Keine passenden Mails gefunden" : "\(response.messages.count) Mails geladen"
         }
     }
@@ -120,11 +132,24 @@ final class GmailInboxViewModel: ObservableObject {
                 baseURL: baseURL,
                 path: "/gmail/threads/\(message.threadId)"
             )
-            MessageContextStore.save(thread.contextText)
+            let context = thread.contextText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? formatFallbackContext(thread.messages)
+                : thread.contextText
+            MessageContextStore.save(context)
             selectedThreadId = thread.id
             importedSubject = message.subjectLine
-            statusText = "Thread für Tastatur übernommen"
+            importedContextPreview = makePreview(context)
+            statusText = "Thread übernommen. Jetzt Antwortfeld öffnen, Tastatur wählen und Antwort, 3x oder Check tippen."
         }
+    }
+
+    func copyImportedContextToClipboard() {
+        guard let context = MessageContextStore.loadRecent(), !context.isEmpty else {
+            statusText = "Kein aktueller Thread gespeichert."
+            return
+        }
+        UIPasteboard.general.string = "\(MessageContextStore.clipboardPrefix)\n\(context)"
+        statusText = "Thread-Kontext kopiert."
     }
 
     private func runLoading(_ operation: () async throws -> Void) async {
@@ -133,7 +158,7 @@ final class GmailInboxViewModel: ObservableObject {
         do {
             try await operation()
         } catch {
-            statusText = error.localizedDescription
+            statusText = readableError(error)
         }
     }
 
@@ -152,7 +177,8 @@ final class GmailInboxViewModel: ObservableObject {
             throw GmailInboxError.server("Keine HTTP-Antwort vom Backend.")
         }
         guard (200..<300).contains(http.statusCode) else {
-            let serverMessage = (try? JSONDecoder().decode(ServerError.self, from: data))?.message
+            let decoded = try? JSONDecoder().decode(ServerError.self, from: data)
+            let serverMessage = decoded?.message ?? decoded?.error
             throw GmailInboxError.server(serverMessage ?? "Backend meldet HTTP \(http.statusCode).")
         }
         return try JSONDecoder().decode(T.self, from: data)
@@ -163,7 +189,7 @@ final class GmailInboxViewModel: ObservableObject {
         path: String,
         queryItems: [URLQueryItem] = []
     ) throws -> URL {
-        let cleaned = baseURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let cleaned = normalizeBaseURL(baseURL)
         guard !cleaned.isEmpty else { throw GmailInboxError.missingBackendURL }
         guard var components = URLComponents(string: cleaned + path) else { throw GmailInboxError.invalidURL }
         if !queryItems.isEmpty {
@@ -175,5 +201,53 @@ final class GmailInboxViewModel: ObservableObject {
 
     private struct ServerError: Decodable {
         let message: String?
+        let error: String?
+    }
+
+    private func normalizeBaseURL(_ value: String) -> String {
+        var cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        while cleaned.hasSuffix("/") {
+            cleaned.removeLast()
+        }
+        for suffix in ["/auth/google", "/gmail/status", "/gmail/messages"] where cleaned.hasSuffix(suffix) {
+            cleaned.removeLast(suffix.count)
+        }
+        return cleaned
+    }
+
+    private func readableError(_ error: Error) -> String {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorCannotConnectToHost, NSURLErrorNotConnectedToInternet, NSURLErrorTimedOut:
+                return "Backend nicht erreichbar. Mac und iPhone müssen im selben WLAN sein. Backend mit scripts/start-phone-backend.sh starten und die Mac-IP eintragen."
+            case NSURLErrorAppTransportSecurityRequiresSecureConnection:
+                return "iOS blockiert die HTTP-Verbindung. Bitte lokale Netzwerkfreigabe erlauben und die Backend-URL mit http://192.168... verwenden."
+            default:
+                break
+            }
+        }
+        return error.localizedDescription
+    }
+
+    private func formatFallbackContext(_ messages: [GmailInboxMessage]) -> String {
+        messages.map { message in
+            [
+                "From: \(message.from)",
+                "To: \(message.to)",
+                "Date: \(message.date)",
+                "Subject: \(message.subject)",
+                "",
+                message.body ?? message.snippet
+            ].joined(separator: "\n")
+        }.joined(separator: "\n\n---\n\n")
+    }
+
+    private func makePreview(_ context: String) -> String {
+        let cleaned = context
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.count <= 180 { return cleaned }
+        return String(cleaned.prefix(180)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
     }
 }

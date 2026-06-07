@@ -129,6 +129,13 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
+                    LabeledContent("Status") {
+                        Text(gmail.statusBadge)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(gmail.isConnected ? .green : .secondary)
+                    }
+
                     HStack {
                         Button("Status") {
                             store.save()
@@ -143,6 +150,7 @@ struct SettingsView: View {
                             Task { await gmail.loadMessages(baseURL: store.profile.backendURL, query: activeGmailQuery) }
                         }
                     }
+                    .buttonStyle(.bordered)
                     .disabled(gmail.isLoading)
 
                     if gmail.isLoading {
@@ -157,6 +165,20 @@ struct SettingsView: View {
                         Text("Übernommen: \(gmail.importedSubject)")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if !gmail.importedContextPreview.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Kontext für Tastatur")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(gmail.importedContextPreview)
+                                .font(.footnote)
+                                .lineLimit(4)
+                            Button("Kontext erneut kopieren") {
+                                gmail.copyImportedContextToClipboard()
+                            }
+                        }
                     }
 
                     Text("Am iPhone hier die Mac-IP eintragen, z.B. http://192.168.1.20:8787. OAuth am besten zuerst am Mac verbinden; das iPhone lädt danach über Read-only.")
@@ -192,7 +214,7 @@ struct SettingsView: View {
                 }
 
                 Section("Tastatur aktivieren") {
-                    Text("1. iPhone Einstellungen öffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufügen\n4. Bei Bedarf Vollen Zugriff erlauben")
+                    Text("1. iPhone Einstellungen öffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufügen\n4. Vollen Zugriff erlauben, damit Profil und übernommene Threads aus App/Share Extension gelesen werden können")
                         .font(.footnote)
                     Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Speichern kopiert das Profil für die Tastatur. Dafür in iOS bei der Tastatur Vollen Zugriff erlauben.")
                         .font(.footnote)
