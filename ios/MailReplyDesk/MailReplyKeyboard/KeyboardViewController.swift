@@ -33,10 +33,48 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
+    private enum ConversationMode: String {
+        case auto
+        case privateChat
+        case work
+
+        private static let storageKey = "mailReplyDesk.keyboard.conversationMode"
+
+        static func load() -> ConversationMode {
+            guard let raw = UserDefaults.standard.string(forKey: storageKey) else { return .auto }
+            return ConversationMode(rawValue: raw) ?? .auto
+        }
+
+        mutating func toggle() {
+            switch self {
+            case .auto:
+                self = .privateChat
+            case .privateChat:
+                self = .work
+            case .work:
+                self = .auto
+            }
+        }
+
+        func save() {
+            UserDefaults.standard.set(rawValue, forKey: Self.storageKey)
+            UserDefaults.standard.synchronize()
+        }
+
+        var shortTitle: String {
+            switch self {
+            case .auto: return "Auto"
+            case .privateChat: return "Privat"
+            case .work: return "Arbeit"
+            }
+        }
+    }
+
     private var profile = ProfileStore.loadProfile()
     private var keyboardMode: KeyboardMode = .letters
     private var language: OutputLanguage = .german
     private var formality: Formality = .formal
+    private var conversationMode: ConversationMode = .load()
     private var isShifted = false
     private let rootStack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
@@ -122,7 +160,7 @@ final class KeyboardViewController: UIInputViewController {
             ]))
             rootStack.addArrangedSubview(makeToolRow([
                 ("3x", #selector(insertThreeDrafts)),
-                ("Kürzer", #selector(insertShortDraft)),
+                ("Check", #selector(insertAnalysisDraft)),
                 ("Freundl.", #selector(insertFriendlyDraft)),
                 ("Profi", #selector(insertProfessionalDraft))
             ]))
@@ -157,23 +195,28 @@ final class KeyboardViewController: UIInputViewController {
         title.minimumScaleFactor = 0.72
         title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
+        let contextMode = makeButton(conversationMode.shortTitle, weight: .semibold)
+        contextMode.addTarget(self, action: #selector(toggleConversationMode), for: .touchUpInside)
+        contextMode.widthAnchor.constraint(equalToConstant: 62).isActive = true
+
         let mode = makeButton(keyboardMode == .tools ? "ABC" : "Tools", weight: .semibold)
         mode.addTarget(self, action: #selector(toggleTools), for: .touchUpInside)
-        mode.widthAnchor.constraint(equalToConstant: 58).isActive = true
+        mode.widthAnchor.constraint(equalToConstant: 54).isActive = true
 
         let lang = makeButton(language.shortTitle, weight: .semibold)
         lang.addTarget(self, action: #selector(toggleLanguage), for: .touchUpInside)
-        lang.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        lang.widthAnchor.constraint(equalToConstant: 40).isActive = true
 
         let tone = makeButton(formality.shortTitle, weight: .semibold)
         tone.addTarget(self, action: #selector(toggleFormality), for: .touchUpInside)
-        tone.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        tone.widthAnchor.constraint(equalToConstant: 44).isActive = true
 
         let next = makeButton("Globus", weight: .regular)
         next.addTarget(self, action: #selector(nextKeyboard), for: .touchUpInside)
-        next.widthAnchor.constraint(equalToConstant: 56).isActive = true
+        next.widthAnchor.constraint(equalToConstant: 52).isActive = true
 
         row.addArrangedSubview(title)
+        row.addArrangedSubview(contextMode)
         row.addArrangedSubview(mode)
         row.addArrangedSubview(lang)
         row.addArrangedSubview(tone)
@@ -200,6 +243,9 @@ final class KeyboardViewController: UIInputViewController {
             }
             if title == "Nein" {
                 button.configuration?.baseBackgroundColor = UIColor.systemGray
+                button.configuration?.baseForegroundColor = UIColor.white
+            } else if title == "Check" {
+                button.configuration?.baseBackgroundColor = UIColor.systemTeal
                 button.configuration?.baseForegroundColor = UIColor.white
             } else if title == "Profi" {
                 button.configuration?.baseBackgroundColor = UIColor.systemIndigo
@@ -343,6 +389,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func makeGermanDraft(kind: DraftKind, topic: String) -> String {
+        let mode = effectiveConversationMode(for: topic)
         let formal = shouldUseFormalTone(for: kind, topic: topic)
         let greeting = formal ? "Guten Tag," : "Hallo,"
         let signoff = formal ? "Beste Grüße\n\(senderName(formal: true))" : "Liebe Grüße\n\(senderName(formal: false))"
@@ -361,19 +408,33 @@ final class KeyboardViewController: UIInputViewController {
         case .collaboration:
             body = collaborationBodyGerman(topic: topic, formal: formal)
         case .event:
-            body = formal
+            if mode == .privateChat {
+                body = "Ja, das passt grundsätzlich. Sag mir bitte kurz, wann und wo es dir am besten passt, dann richte ich mich danach."
+            } else {
+                body = formal
                 ? "gerne. Bitte senden Sie mir zwei bis drei passende Zeitfenster, dann koordiniere ich den Termin.\n\n\(focus)"
                 : "gerne. Schick mir bitte zwei bis drei passende Zeitfenster, dann koordiniere ich den Termin.\n\n\(focus)"
+            }
         case .short:
-            body = formal
+            if mode == .privateChat {
+                body = shortPrivateBodyGerman(topic: topic)
+            } else {
+                body = formal
                 ? "vielen Dank. Bitte senden Sie mir noch Scope, Timing, Budgetrahmen und Nutzungsrechte. Danach gebe ich Ihnen eine konkrete Rückmeldung."
                 : "danke dir. Schick mir bitte noch Scope, Timing, Budgetrahmen und Nutzungsrechte. Danach gebe ich dir eine konkrete Rückmeldung."
+            }
         case .friendly:
-            body = formal
+            if mode == .privateChat {
+                body = friendlyPrivateBodyGerman(topic: topic)
+            } else {
+                body = formal
                 ? "vielen Dank für Ihre Nachricht, das klingt interessant.\n\n\(focus)\n\nSenden Sie mir gerne noch die offenen Eckdaten, dann melde ich mich mit einem passenden Vorschlag."
                 : "danke dir, das klingt interessant.\n\n\(focus)\n\nSchick mir gerne noch die offenen Eckdaten, dann melde ich mich mit einem passenden Vorschlag."
+            }
         case .professional:
-            body = "vielen Dank für Ihre Nachricht. Für eine belastbare Einschätzung brauche ich bitte Scope, Timing, Deliverables, Budgetrahmen und Nutzungsrechte.\n\n\(focus)\n\nSobald das klar ist, melde ich mich mit dem nächsten Schritt."
+            body = mode == .privateChat
+                ? clearPrivateBodyGerman(topic: topic)
+                : "vielen Dank für Ihre Nachricht. Für eine belastbare Einschätzung brauche ich bitte Scope, Timing, Deliverables, Budgetrahmen und Nutzungsrechte.\n\n\(focus)\n\nSobald das klar ist, melde ich mich mit dem nächsten Schritt."
         case .briefing:
             body = "vielen Dank für die Anfrage. Für eine konkrete Einschätzung brauche ich bitte noch:\n\n\(briefingList(limit: 6))"
         case .pricing:
@@ -385,9 +446,13 @@ final class KeyboardViewController: UIInputViewController {
         case .mediaKit:
             body = mediaKitBody(formal: formal)
         case .decline:
-            body = formal
+            if mode == .privateChat {
+                body = "Danke dir fürs Fragen. Das passt bei mir diesmal leider nicht, aber sag mir gerne Bescheid, wenn es ein anderes Mal wieder relevant ist."
+            } else {
+                body = formal
                 ? "vielen Dank für die Anfrage. Aktuell passt die Kooperation leider nicht sauber zu Profil, Timing oder Rahmenbedingungen. Ich wünsche Ihnen viel Erfolg bei der Umsetzung."
                 : "danke dir für die Anfrage. Aktuell passt die Kooperation leider nicht sauber zu Profil, Timing oder Rahmenbedingungen. Ich wünsche euch viel Erfolg bei der Umsetzung."
+            }
         case .invoice:
             body = formal
                 ? "für die weitere Abwicklung sende ich Ihnen gerne die Rechnungsdaten. Bitte lassen Sie mich wissen, welche Angaben benötigt werden."
@@ -398,6 +463,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func makeEnglishDraft(kind: DraftKind, topic: String) -> String {
+        let mode = effectiveConversationMode(for: topic)
         let formal = shouldUseFormalTone(for: kind, topic: topic)
         let greeting = formal ? "Hello," : "Hi,"
         let signoff = formal ? "Best regards\n\(senderName(formal: true))" : "Best\n\(senderName(formal: false))"
@@ -406,21 +472,31 @@ final class KeyboardViewController: UIInputViewController {
         let body: String
         switch kind {
         case .reply:
-            body = "thank you for your message. I have noted the key points and would like to align the next step properly.\n\n\(focus)\n\nPlease send me any missing details regarding scope, timing, budget and usage rights so I can come back with a clear recommendation."
+            body = mode == .privateChat
+                ? privateReplyBodyEnglish(topic: topic)
+                : "thank you for your message. I have noted the key points and would like to align the next step properly.\n\n\(focus)\n\nPlease send me any missing details regarding scope, timing, budget and usage rights so I can come back with a clear recommendation."
         case .approve:
-            body = approveBodyEnglish(topic: topic)
+            body = mode == .privateChat ? "Yes, that works for me. Send me the key details and I will get back to you." : approveBodyEnglish(topic: topic)
         case .newMail:
             body = "I am reaching out regarding \(cleanTopic(topic)). I have summarized the key points below.\n\n\(focus)"
         case .collaboration:
             body = "thank you for the request. The collaboration sounds interesting and could be a good fit for \(cleanTopic(profile.niche)).\n\n\(focus)\n\nTo assess it properly, I would need the briefing, deliverables, timing, budget range, usage rights, exclusivity and approval process."
         case .event:
-            body = "I am happy to prepare a meeting.\n\n\(focus)\n\nPlease send me two or three suitable time slots. Alternatively, I can suggest a 30-minute call once the goal and timing are clear."
+            body = mode == .privateChat
+                ? "Yes, that should work. Send me when and where, and I will plan around it."
+                : "I am happy to prepare a meeting.\n\n\(focus)\n\nPlease send me two or three suitable time slots. Alternatively, I can suggest a 30-minute call once the goal and timing are clear."
         case .short:
-            body = "thank you, this generally sounds suitable. Please send over the scope, timing, budget range and usage rights so I can give you a concrete response."
+            body = mode == .privateChat
+                ? "Thanks, I saw it. I will get back to you shortly."
+                : "thank you, this generally sounds suitable. Please send over the scope, timing, budget range and usage rights so I can give you a concrete response."
         case .friendly:
-            body = "thank you for your message. This sounds interesting and I appreciate the request.\n\n\(focus)\n\nI would be happy to align on the details before sending a clear proposal."
+            body = mode == .privateChat
+                ? "Thanks for letting me know. That sounds good, I will take a look and get back to you."
+                : "thank you for your message. This sounds interesting and I appreciate the request.\n\n\(focus)\n\nI would be happy to align on the details before sending a clear proposal."
         case .professional:
-            body = "thank you for your message. To assess the request properly, I would need the final details regarding scope, timing, deliverables, budget range and usage rights.\n\n\(focus)\n\nOnce these points are clear, I will come back with a structured response and a concrete next step."
+            body = mode == .privateChat
+                ? "Thanks, I understand. I will check it and come back with a clear answer."
+                : "thank you for your message. To assess the request properly, I would need the final details regarding scope, timing, deliverables, budget range and usage rights.\n\n\(focus)\n\nOnce these points are clear, I will come back with a structured response and a concrete next step."
         case .briefing:
             body = "thank you for the request. The collaboration sounds interesting. To assess it properly, I would need:\n\n\(briefingList(limit: 7))"
         case .pricing:
@@ -510,6 +586,33 @@ final class KeyboardViewController: UIInputViewController {
             " passt das ", " ware das ", " wäre das ", " ist das moglich ", " ist das möglich ",
             " konnen wir ", " können wir ", " kannst du ", " konnen sie ", " können sie ",
             " sollen wir ", " duerfen wir ", " dürfen wir ", " geht das ", " okay ", " ok "
+        ])
+    }
+
+    private func effectiveConversationMode(for topic: String) -> ConversationMode {
+        switch conversationMode {
+        case .privateChat, .work:
+            return conversationMode
+        case .auto:
+            let source = normalized(topic)
+            if containsAny(source, [
+                " whatsapp ", " whats app ", " sms ", " privat ", " freund ", " freunde ",
+                " familie ", " mama ", " papa ", " schatz ", " liebling ", " insta dm ",
+                " dm ", " direct message ", " treffen wir ", " hast du zeit ", " wie geht"
+            ]) {
+                return .privateChat
+            }
+            return .work
+        }
+    }
+
+    private func isBusinessContext(_ topic: String) -> Bool {
+        let source = normalized(topic)
+        return containsAny(source, [
+            " kooperation ", " zusammenarbeit ", " kampagne ", " brand ", " marke ",
+            " ugc ", " reel ", " reels ", " story ", " stories ", " influencer ",
+            " creator ", " nutzungsrechte ", " whitelisting ", " spark ads ",
+            " paid usage ", " briefing ", " budget ", " honorar ", " preis "
         ])
     }
 
@@ -603,6 +706,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func shouldUseFormalTone(for kind: DraftKind, topic: String) -> Bool {
+        if effectiveConversationMode(for: topic) == .privateChat { return false }
         if kind == .professional { return true }
         let lower = normalized(topic)
         let formalMarkers = [" sie ", " ihnen ", " ihr ", " ihre ", " frau ", " herr ", " sehr geehrte", " guten tag"]
@@ -647,13 +751,16 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func wrapDraft(body: String, greeting: String, signoff: String, topic: String) -> String {
-        if isChatStyle(topic: topic) {
+        if effectiveConversationMode(for: topic) == .privateChat || isChatStyle(topic: topic) {
             return body
         }
         return "\(greeting)\n\n\(body)\n\n\(signoff)"
     }
 
     private func replyBodyGerman(topic: String, formal: Bool) -> String {
+        if effectiveConversationMode(for: topic) == .privateChat {
+            return privateReplyBodyGerman(topic: topic)
+        }
         let lower = normalized(topic)
         if lower.contains("preis") || lower.contains("budget") || lower.contains("honorar") || lower.contains("rate") {
             return pricingBodyGerman(formal: formal)
@@ -666,12 +773,72 @@ final class KeyboardViewController: UIInputViewController {
                 ? "vielen Dank für Ihre Nachricht. Bitte senden Sie mir zwei bis drei passende Zeitfenster, dann koordiniere ich den Termin.\n\n\(focusLine(topic: topic, formal: formal))"
                 : "danke dir. Schick mir bitte zwei bis drei passende Zeitfenster, dann koordiniere ich den Termin.\n\n\(focusLine(topic: topic, formal: formal))"
         }
+        if !isBusinessContext(topic) {
+            return workReplyBodyGerman(topic: topic, formal: formal)
+        }
         return formal
             ? "vielen Dank für Ihre Nachricht. Ich habe die Punkte aufgenommen und stimme den nächsten Schritt gerne sauber ab.\n\n\(focusLine(topic: topic, formal: formal))\n\nBitte senden Sie mir noch die fehlenden Eckdaten, falls etwas offen ist."
             : "danke dir. Ich habe die Punkte aufgenommen und stimme den nächsten Schritt gerne sauber ab.\n\n\(focusLine(topic: topic, formal: formal))\n\nSchick mir gerne noch die fehlenden Eckdaten, falls etwas offen ist."
     }
 
+    private func privateReplyBodyGerman(topic: String) -> String {
+        let lower = normalized(topic)
+        if containsAny(lower, [" danke ", " danke dir ", " vielen dank "]) {
+            return "Sehr gerne, freut mich. Gib mir kurz Bescheid, falls noch etwas offen ist."
+        }
+        if containsAny(lower, [" sorry ", " tut mir leid ", " entschuldige ", " entschuldigung "]) {
+            return "Alles gut, danke fürs Bescheid geben. Mach dir keinen Stress."
+        }
+        if containsAny(lower, [" wie geht ", " alles gut ", " wie lauft ", " wie läuft "]) {
+            return "Danke dir, bei mir passt alles. Wie geht es dir?"
+        }
+        if containsAny(lower, [" treffen ", " essen ", " kaffee ", " zeit ", " kommst du ", " lust "]) {
+            return "Klingt gut. Sag mir bitte kurz wann und wo, dann schaue ich, wie es sich ausgeht."
+        }
+        if looksLikeYesNoQuestion(lower) {
+            return "Ja, das passt grundsätzlich. Schick mir bitte noch kurz die wichtigsten Details."
+        }
+        if lower.contains("?") {
+            return "Danke dir, ich schaue es mir an und melde mich gleich mit einer Antwort."
+        }
+        return "Danke dir, ich habe es gesehen. Ich melde mich gleich dazu."
+    }
+
+    private func shortPrivateBodyGerman(topic: String) -> String {
+        let lower = normalized(topic)
+        if looksLikeYesNoQuestion(lower) {
+            return "Ja, passt grundsätzlich. Schick mir bitte kurz die Details."
+        }
+        return "Danke dir, ich habe es gesehen. Ich melde mich gleich."
+    }
+
+    private func friendlyPrivateBodyGerman(topic: String) -> String {
+        let lower = normalized(topic)
+        if containsAny(lower, [" treffen ", " essen ", " kaffee ", " zeit ", " lust "]) {
+            return "Klingt gut, danke dir. Sag mir kurz wann und wo, dann schaue ich, wie es bei mir passt."
+        }
+        return "Danke dir fürs Bescheid geben. Ich schaue es mir in Ruhe an und melde mich gleich."
+    }
+
+    private func clearPrivateBodyGerman(topic: String) -> String {
+        let lower = normalized(topic)
+        if lower.contains("?") {
+            return "Danke dir. Ich prüfe das kurz und gebe dir gleich eine klare Antwort."
+        }
+        return "Verstanden, danke dir. Ich kümmere mich darum und melde mich, sobald ich es geprüft habe."
+    }
+
+    private func workReplyBodyGerman(topic: String, formal: Bool) -> String {
+        if formal {
+            return "vielen Dank für Ihre Nachricht. Ich habe die Punkte aufgenommen und prüfe den nächsten Schritt.\n\n\(focusLine(topic: topic, formal: formal))\n\nFalls noch etwas offen ist, melde ich mich kurz mit einer Rückfrage."
+        }
+        return "danke dir, ich habe es gesehen. Ich prüfe den nächsten Schritt und melde mich kurz, falls noch etwas offen ist.\n\n\(focusLine(topic: topic, formal: formal))"
+    }
+
     private func approveBodyGerman(topic: String, formal: Bool) -> String {
+        if effectiveConversationMode(for: topic) == .privateChat {
+            return shortPrivateBodyGerman(topic: topic)
+        }
         let lower = normalized(topic)
         if containsAny(lower, [" termin ", " call ", " meeting ", " zeitfenster "]) {
             return formal
@@ -705,6 +872,29 @@ final class KeyboardViewController: UIInputViewController {
             return "yes, I can give you a reliable estimate. For that, I would need the scope, deliverables, timing and usage rights."
         }
         return "yes, that is generally possible. Please send me the remaining key details and I will confirm the next step."
+    }
+
+    private func privateReplyBodyEnglish(topic: String) -> String {
+        let lower = normalized(topic)
+        if containsAny(lower, [" thanks ", " thank you "]) {
+            return "Of course, happy to help. Let me know if anything else is open."
+        }
+        if containsAny(lower, [" sorry ", " apology ", " apologies "]) {
+            return "No worries, thanks for letting me know."
+        }
+        if containsAny(lower, [" how are you ", " all good "]) {
+            return "Thanks, I am good. How are you?"
+        }
+        if containsAny(lower, [" meet ", " dinner ", " coffee ", " time ", " are you free "]) {
+            return "Sounds good. Send me when and where, and I will check what works."
+        }
+        if looksLikeYesNoQuestion(lower) {
+            return "Yes, that should work. Send me the key details."
+        }
+        if lower.contains("?") {
+            return "Thanks, I will check it and get back to you shortly."
+        }
+        return "Thanks, I saw it. I will get back to you shortly."
     }
 
     private func collaborationBodyGerman(topic: String, formal: Bool) -> String {
@@ -788,6 +978,12 @@ final class KeyboardViewController: UIInputViewController {
         rebuildKeyboard()
     }
 
+    @objc private func toggleConversationMode() {
+        conversationMode.toggle()
+        conversationMode.save()
+        rebuildKeyboard()
+    }
+
     @objc private func toggleShift() {
         isShifted.toggle()
         rebuildKeyboard()
@@ -823,6 +1019,15 @@ final class KeyboardViewController: UIInputViewController {
         ]
         deleteNotesIfNeeded(rawNotes)
         insertText(drafts.joined(separator: "\n\n---\n\n"))
+    }
+
+    @objc private func insertAnalysisDraft() {
+        let rawNotes = notesBeforeInputForReplacement()
+        let context = contextForDraft(rawNotes: rawNotes) ?? currentContext()
+        let kind = bestKind(for: context)
+        let analysis = makeAnalysisDraft(context: context, kind: kind)
+        deleteNotesIfNeeded(rawNotes)
+        insertText(analysis)
     }
 
     @objc private func insertShortDraft() {
@@ -888,6 +1093,94 @@ final class KeyboardViewController: UIInputViewController {
         deleteNotesIfNeeded(rawNotes)
         registerUse(kind: kind)
         insertText(draft)
+    }
+
+    private func makeAnalysisDraft(context: String, kind: DraftKind) -> String {
+        let mode = effectiveConversationMode(for: context)
+        let formal = shouldUseFormalTone(for: kind, topic: context)
+        let topic = cleanTopic(context, maxLength: 220)
+
+        if language == .english {
+            return [
+                "Detected: \(modeLabel(mode)) / \(intentLabel(kind))",
+                "Tone: \(formal ? "formal" : "casual"), \(mode == .privateChat ? "no greeting/sign-off" : "structured reply")",
+                "Reply logic: \(recommendationLabel(kind: kind, mode: mode))",
+                "Context: \(topic)"
+            ].joined(separator: "\n")
+        }
+
+        return [
+            "Erkannt: \(modeLabel(mode)) / \(intentLabel(kind))",
+            "Stil: \(formal ? "förmlich" : "locker"), \(mode == .privateChat ? "ohne Grußformel" : "strukturierte Antwort")",
+            "Antwortlogik: \(recommendationLabel(kind: kind, mode: mode))",
+            "Kontext: \(topic)"
+        ].joined(separator: "\n")
+    }
+
+    private func modeLabel(_ mode: ConversationMode) -> String {
+        switch (language, mode) {
+        case (.german, .auto): return "Auto"
+        case (.german, .privateChat): return "Privat/Chat"
+        case (.german, .work): return "Arbeit/Mail"
+        case (.english, .auto): return "Auto"
+        case (.english, .privateChat): return "Private/chat"
+        case (.english, .work): return "Work/mail"
+        }
+    }
+
+    private func intentLabel(_ kind: DraftKind) -> String {
+        switch (language, kind) {
+        case (.german, .reply): return "Antwort"
+        case (.german, .approve): return "Zusage/Ja"
+        case (.german, .newMail): return "neue Mail"
+        case (.german, .collaboration): return "Kooperation"
+        case (.german, .event): return "Termin"
+        case (.german, .short): return "kurz"
+        case (.german, .friendly): return "freundlich"
+        case (.german, .professional): return "professionell"
+        case (.german, .briefing): return "Briefing"
+        case (.german, .pricing): return "Preis/Budget"
+        case (.german, .followUp): return "Follow-up"
+        case (.german, .mediaKit): return "MediaKit"
+        case (.german, .decline): return "Absage"
+        case (.german, .invoice): return "Rechnung"
+        case (.english, .reply): return "reply"
+        case (.english, .approve): return "yes/approval"
+        case (.english, .newMail): return "new email"
+        case (.english, .collaboration): return "collaboration"
+        case (.english, .event): return "meeting"
+        case (.english, .short): return "short"
+        case (.english, .friendly): return "friendly"
+        case (.english, .professional): return "professional"
+        case (.english, .briefing): return "briefing"
+        case (.english, .pricing): return "price/budget"
+        case (.english, .followUp): return "follow-up"
+        case (.english, .mediaKit): return "media kit"
+        case (.english, .decline): return "decline"
+        case (.english, .invoice): return "invoice"
+        }
+    }
+
+    private func recommendationLabel(kind: DraftKind, mode: ConversationMode) -> String {
+        if language == .english {
+            if mode == .privateChat { return "answer naturally, short, without email framing." }
+            switch kind {
+            case .event: return "ask for or confirm time slots."
+            case .pricing: return "clarify scope before price."
+            case .collaboration: return "ask for briefing, deliverables, timing, budget and usage rights."
+            case .decline: return "decline politely without overexplaining."
+            default: return "acknowledge context and define the next step."
+            }
+        }
+
+        if mode == .privateChat { return "natürlich, kurz und ohne Mail-Rahmen antworten." }
+        switch kind {
+        case .event: return "Zeitfenster klären oder Termin bestätigen."
+        case .pricing: return "erst Scope klären, dann Preis nennen."
+        case .collaboration: return "Briefing, Deliverables, Timing, Budget und Nutzungsrechte anfragen."
+        case .decline: return "höflich absagen, ohne unnötig zu erklären."
+        default: return "Kontext bestätigen und nächsten Schritt klar machen."
+        }
     }
 
     private func notesBeforeInputForReplacement() -> String? {
