@@ -115,9 +115,9 @@ final class KeyboardViewController: UIInputViewController {
         case .tools:
             rootStack.addArrangedSubview(makeToolRow([
                 ("Antwort", #selector(insertReplyDraft)),
-                ("Koop", #selector(insertCollaborationDraft)),
-                ("Termin", #selector(insertEventDraft)),
-                ("Mail", #selector(insertNewMailDraft))
+                ("Ja", #selector(insertApproveDraft)),
+                ("Nein", #selector(insertDeclineDraft)),
+                ("Termin", #selector(insertEventDraft))
             ]))
             rootStack.addArrangedSubview(makeToolRow([
                 ("3x", #selector(insertThreeDrafts)),
@@ -126,16 +126,16 @@ final class KeyboardViewController: UIInputViewController {
                 ("Profi", #selector(insertProfessionalDraft))
             ]))
             rootStack.addArrangedSubview(makeToolRow([
-                ("Briefing", #selector(insertBriefingDraft)),
+                ("Koop", #selector(insertCollaborationDraft)),
                 ("Preis", #selector(insertPricingDraft)),
+                ("Briefing", #selector(insertBriefingDraft)),
                 ("Follow-up", #selector(insertFollowUpDraft)),
-                ("MediaKit", #selector(insertMediaKitDraft))
             ]))
             rootStack.addArrangedSubview(makeToolRow([
-                ("Absage", #selector(insertDeclineDraft)),
+                ("Mail", #selector(insertNewMailDraft)),
                 ("Rechnung", #selector(insertInvoiceDraft)),
-                ("Signatur", #selector(insertSignature)),
-                ("Diktat", #selector(openDictationKeyboard))
+                ("MediaKit", #selector(insertMediaKitDraft)),
+                ("Signatur", #selector(insertSignature))
             ]))
             rootStack.addArrangedSubview(makeToolsBottomRow())
         }
@@ -183,9 +183,9 @@ final class KeyboardViewController: UIInputViewController {
     private func makeQuickReplyRow() -> UIStackView {
         makeToolRow([
             ("Antwort", #selector(insertReplyDraft)),
+            ("Ja", #selector(insertApproveDraft)),
+            ("Nein", #selector(insertDeclineDraft)),
             ("Kürzer", #selector(insertShortDraft)),
-            ("Freundl.", #selector(insertFriendlyDraft)),
-            ("Profi", #selector(insertProfessionalDraft))
         ])
     }
 
@@ -193,8 +193,12 @@ final class KeyboardViewController: UIInputViewController {
         let row = horizontalRow()
         items.forEach { title, selector in
             let button = makeButton(title, weight: .medium)
-            if ["Antwort", "Koop", "Termin", "Mail"].contains(title) {
+            if ["Antwort", "Ja", "Nein", "Koop", "Termin", "Mail"].contains(title) {
                 button.configuration?.baseBackgroundColor = UIColor.systemBlue
+                button.configuration?.baseForegroundColor = UIColor.white
+            }
+            if title == "Nein" {
+                button.configuration?.baseBackgroundColor = UIColor.systemGray
                 button.configuration?.baseForegroundColor = UIColor.white
             } else if title == "Profi" {
                 button.configuration?.baseBackgroundColor = UIColor.systemIndigo
@@ -347,6 +351,8 @@ final class KeyboardViewController: UIInputViewController {
         switch kind {
         case .reply:
             body = replyBodyGerman(topic: topic, formal: formal)
+        case .approve:
+            body = approveBodyGerman(topic: topic, formal: formal)
         case .newMail:
             body = formal
                 ? "ich melde mich wegen \(cleanTopic(topic)).\n\n\(focus)"
@@ -387,7 +393,7 @@ final class KeyboardViewController: UIInputViewController {
                 : "für die weitere Abwicklung schicke ich dir gerne die Rechnungsdaten. Sag mir bitte kurz, welche Angaben ihr braucht."
         }
 
-        return "\(greeting)\n\n\(body)\n\n\(signoff)"
+        return wrapDraft(body: body, greeting: greeting, signoff: signoff, topic: topic)
     }
 
     private func makeEnglishDraft(kind: DraftKind, topic: String) -> String {
@@ -400,6 +406,8 @@ final class KeyboardViewController: UIInputViewController {
         switch kind {
         case .reply:
             body = "thank you for your message. I have noted the key points and would like to align the next step properly.\n\n\(focus)\n\nPlease send me any missing details regarding scope, timing, budget and usage rights so I can come back with a clear recommendation."
+        case .approve:
+            body = approveBodyEnglish(topic: topic)
         case .newMail:
             body = "I am reaching out regarding \(cleanTopic(topic)). I have summarized the key points below.\n\n\(focus)"
         case .collaboration:
@@ -426,11 +434,13 @@ final class KeyboardViewController: UIInputViewController {
             body = "for the next step, I am happy to send the billing details or any required information. Please let me know which details you need on your side."
         }
 
-        return "\(greeting)\n\n\(body)\n\n\(signoff)"
+        return wrapDraft(body: body, greeting: greeting, signoff: signoff, topic: topic)
     }
 
     private func defaultTopic(for kind: DraftKind) -> String {
         switch kind {
+        case .approve:
+            return language == .german ? "die Frage" : "the question"
         case .event:
             return language == .german ? "den Termin" : "the meeting"
         case .collaboration:
@@ -465,11 +475,27 @@ final class KeyboardViewController: UIInputViewController {
         if containsAny(source, [" kooperation ", " kampagne ", " collab ", " brand ", " ugc ", " reel ", " reels ", " story ", " stories ", " influencer ", " creator ", " nutzungsrechte ", " whitelisting ", " spark ads "]) {
             return .collaboration
         }
+        if looksLikeYesNoQuestion(source) {
+            return .approve
+        }
         return learnedPreferredReplyKind() ?? .reply
     }
 
     private func containsAny(_ source: String, _ needles: [String]) -> Bool {
         needles.contains { source.contains($0) }
+    }
+
+    private func looksLikeYesNoQuestion(_ source: String) -> Bool {
+        source.contains("?") || containsAny(source, [
+            " passt das ", " ware das ", " wäre das ", " ist das moglich ", " ist das möglich ",
+            " konnen wir ", " können wir ", " kannst du ", " konnen sie ", " können sie ",
+            " sollen wir ", " duerfen wir ", " dürfen wir ", " geht das ", " okay ", " ok "
+        ])
+    }
+
+    private func isChatStyle(topic: String) -> Bool {
+        let source = normalized(topic)
+        return containsAny(source, [" whatsapp ", " dm ", " chat ", " instagram ", " insta ", " linkedin ", " sms "])
     }
 
     private func prefersConciseReplies() -> Bool {
@@ -537,7 +563,14 @@ final class KeyboardViewController: UIInputViewController {
         if language == .english {
             return "Current context: \(topic)"
         }
-        return formal ? "Aktueller Kontext: \(topic)" : "Ich habe mir notiert: \(topic)"
+        return formal ? "Ausgangslage: \(topic)" : "Ich habe mir notiert: \(topic)"
+    }
+
+    private func wrapDraft(body: String, greeting: String, signoff: String, topic: String) -> String {
+        if isChatStyle(topic: topic) {
+            return body
+        }
+        return "\(greeting)\n\n\(body)\n\n\(signoff)"
     }
 
     private func replyBodyGerman(topic: String, formal: Bool) -> String {
@@ -556,6 +589,42 @@ final class KeyboardViewController: UIInputViewController {
         return formal
             ? "vielen Dank für Ihre Nachricht. Ich habe die Punkte aufgenommen und stimme den nächsten Schritt gerne sauber ab.\n\n\(focusLine(topic: topic, formal: formal))\n\nBitte senden Sie mir noch die fehlenden Eckdaten, falls etwas offen ist."
             : "danke dir. Ich habe die Punkte aufgenommen und stimme den nächsten Schritt gerne sauber ab.\n\n\(focusLine(topic: topic, formal: formal))\n\nSchick mir gerne noch die fehlenden Eckdaten, falls etwas offen ist."
+    }
+
+    private func approveBodyGerman(topic: String, formal: Bool) -> String {
+        let lower = normalized(topic)
+        if containsAny(lower, [" termin ", " call ", " meeting ", " zeitfenster "]) {
+            return formal
+                ? "ja, das passt grundsätzlich. Bitte senden Sie mir zwei bis drei konkrete Zeitfenster, dann bestätige ich den Termin."
+                : "ja, das passt grundsätzlich. Schick mir bitte zwei bis drei konkrete Zeitfenster, dann bestätige ich den Termin."
+        }
+        if containsAny(lower, [" kooperation ", " kampagne ", " collab ", " ugc ", " reel ", " story ", " nutzungsrechte "]) {
+            return formal
+                ? "ja, grundsätzlich ist das interessant. Für eine finale Einschätzung brauche ich bitte noch Briefing, Deliverables, Timing, Budgetrahmen und Nutzungsrechte."
+                : "ja, grundsätzlich klingt das interessant. Für eine finale Einschätzung brauche ich bitte noch Briefing, Deliverables, Timing, Budgetrahmen und Nutzungsrechte."
+        }
+        if containsAny(lower, [" preis ", " budget ", " honorar ", " kosten "]) {
+            return formal
+                ? "ja, ich kann Ihnen dazu gerne eine Einschätzung geben. Dafür brauche ich bitte noch Scope, Deliverables, Timing und Nutzungsrechte."
+                : "ja, ich kann dir dazu gerne eine Einschätzung geben. Dafür brauche ich bitte noch Scope, Deliverables, Timing und Nutzungsrechte."
+        }
+        return formal
+            ? "ja, das ist grundsätzlich möglich. Bitte senden Sie mir noch die offenen Eckdaten, dann bestätige ich den nächsten Schritt verbindlich."
+            : "ja, das ist grundsätzlich möglich. Schick mir bitte noch die offenen Eckdaten, dann bestätige ich den nächsten Schritt."
+    }
+
+    private func approveBodyEnglish(topic: String) -> String {
+        let lower = normalized(topic)
+        if containsAny(lower, [" meeting ", " call ", " time slot ", " calendar "]) {
+            return "yes, that generally works. Please send me two or three concrete time slots and I will confirm the meeting."
+        }
+        if containsAny(lower, [" collaboration ", " campaign ", " collab ", " ugc ", " reel ", " story ", " usage rights "]) {
+            return "yes, this sounds interesting. For a final assessment, I would need the briefing, deliverables, timing, budget range and usage rights."
+        }
+        if containsAny(lower, [" price ", " budget ", " fee ", " cost ", " rate "]) {
+            return "yes, I can give you a reliable estimate. For that, I would need the scope, deliverables, timing and usage rights."
+        }
+        return "yes, that is generally possible. Please send me the remaining key details and I will confirm the next step."
     }
 
     private func collaborationBodyGerman(topic: String, formal: Bool) -> String {
@@ -650,6 +719,10 @@ final class KeyboardViewController: UIInputViewController {
 
     @objc private func insertNewMailDraft() {
         insertDraftReplacingNotesIfUseful(kind: .newMail)
+    }
+
+    @objc private func insertApproveDraft() {
+        insertDraftReplacingNotesIfUseful(kind: .approve)
     }
 
     @objc private func insertCollaborationDraft() {
@@ -791,6 +864,7 @@ final class KeyboardViewController: UIInputViewController {
 
 private enum DraftKind {
     case reply
+    case approve
     case newMail
     case collaboration
     case event
@@ -807,6 +881,7 @@ private enum DraftKind {
     var storageKey: String {
         switch self {
         case .reply: return "reply"
+        case .approve: return "approve"
         case .newMail: return "newMail"
         case .collaboration: return "collaboration"
         case .event: return "event"
