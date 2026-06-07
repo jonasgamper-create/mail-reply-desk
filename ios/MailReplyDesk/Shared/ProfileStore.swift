@@ -18,6 +18,7 @@ struct UserProfile: Codable, Equatable {
     var briefingChecklist: String
     var brandSafetyNoGos: String
     var styleVoice: String
+    var learningNotes: String
     var backendURL: String
 
     static let `default` = UserProfile(
@@ -33,10 +34,11 @@ struct UserProfile: Codable, Equatable {
         mediaKitURL: "",
         socialLinks: "",
         rateCardNote: "Preise erst nach Briefing, Deliverables, Nutzungsrechten, Laufzeit und Budgetrahmen fixieren.",
-        usageRightsPolicy: "Whitelisting/Spark Ads, Paid Usage, Exklusivitaet und Laufzeit immer separat klaeren.",
-        briefingChecklist: "Kampagnenziel\nDeliverables\nTiming/Deadline\nBudgetrahmen\nNutzungsrechte/Laufzeit\nExklusivitaet\nFreigabeschleifen\nReporting",
-        brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Verguetung, keine automatischen Zusagen, keine Preise ohne Scope",
-        styleVoice: "klar, warm, professionell, nicht kuenstlich",
+        usageRightsPolicy: "Whitelisting/Spark Ads, Paid Usage, Exklusivität und Laufzeit immer separat klären.",
+        briefingChecklist: "Kampagnenziel\nDeliverables\nTiming/Deadline\nBudgetrahmen\nNutzungsrechte/Laufzeit\nExklusivität\nFreigabeschleifen\nReporting",
+        brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Vergütung, keine automatischen Zusagen, keine Preise ohne Scope",
+        styleVoice: "klar, warm, professionell, kurz, nicht künstlich",
+        learningNotes: "Antworten kurz halten. Erst Briefing, Scope, Timing, Budget und Nutzungsrechte klären. Keine Preise ohne vollständigen Scope zusagen.",
         backendURL: ""
     )
 
@@ -53,10 +55,11 @@ struct UserProfile: Codable, Equatable {
         mediaKitURL: "",
         socialLinks: "",
         rateCardNote: "Preise erst nach Briefing, Deliverables, Nutzungsrechten, Laufzeit und Budgetrahmen fixieren.",
-        usageRightsPolicy: "Whitelisting/Spark Ads, Paid Usage, Exklusivitaet und Laufzeit immer separat klaeren.",
-        briefingChecklist: "Kampagnenziel\nDeliverables\nTiming/Deadline\nBudgetrahmen\nNutzungsrechte/Laufzeit\nExklusivitaet\nFreigabeschleifen\nReporting",
-        brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Verguetung, keine automatischen Zusagen, keine Preise ohne Scope",
-        styleVoice: "klar, warm, professionell, nicht kuenstlich",
+        usageRightsPolicy: "Whitelisting/Spark Ads, Paid Usage, Exklusivität und Laufzeit immer separat klären.",
+        briefingChecklist: "Kampagnenziel\nDeliverables\nTiming/Deadline\nBudgetrahmen\nNutzungsrechte/Laufzeit\nExklusivität\nFreigabeschleifen\nReporting",
+        brandSafetyNoGos: "keine unbefristeten Nutzungsrechte ohne Vergütung, keine automatischen Zusagen, keine Preise ohne Scope",
+        styleVoice: "klar, warm, professionell, kurz, nicht künstlich",
+        learningNotes: "Linda klingt freundlich, direkt und professionell. Kurz antworten, nie automatisch zusagen, bei Kooperationen zuerst Briefing, Budget und Nutzungsrechte klären.",
         backendURL: ""
     )
 
@@ -77,6 +80,7 @@ struct UserProfile: Codable, Equatable {
         briefingChecklist: String,
         brandSafetyNoGos: String,
         styleVoice: String,
+        learningNotes: String,
         backendURL: String
     ) {
         self.firstName = firstName
@@ -95,6 +99,7 @@ struct UserProfile: Codable, Equatable {
         self.briefingChecklist = briefingChecklist
         self.brandSafetyNoGos = brandSafetyNoGos
         self.styleVoice = styleVoice
+        self.learningNotes = learningNotes
         self.backendURL = backendURL
     }
 
@@ -115,6 +120,7 @@ struct UserProfile: Codable, Equatable {
         case briefingChecklist
         case brandSafetyNoGos
         case styleVoice
+        case learningNotes
         case backendURL
     }
 
@@ -137,6 +143,7 @@ struct UserProfile: Codable, Equatable {
         briefingChecklist = try values.decodeIfPresent(String.self, forKey: .briefingChecklist) ?? fallback.briefingChecklist
         brandSafetyNoGos = try values.decodeIfPresent(String.self, forKey: .brandSafetyNoGos) ?? fallback.brandSafetyNoGos
         styleVoice = try values.decodeIfPresent(String.self, forKey: .styleVoice) ?? fallback.styleVoice
+        learningNotes = try values.decodeIfPresent(String.self, forKey: .learningNotes) ?? fallback.learningNotes
         backendURL = try values.decodeIfPresent(String.self, forKey: .backendURL) ?? fallback.backendURL
     }
 

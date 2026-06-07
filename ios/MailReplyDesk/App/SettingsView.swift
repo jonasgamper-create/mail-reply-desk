@@ -14,7 +14,7 @@ struct SettingsView: View {
                     TextField("Nachname", text: $store.profile.lastName)
                     Picker("Geschlecht / Anrede", selection: $store.profile.gender) {
                         Text("weiblich").tag("female")
-                        Text("maennlich").tag("male")
+                        Text("männlich").tag("male")
                         Text("neutral").tag("neutral")
                     }
                     TextField("App-Name", text: $store.profile.appName)
@@ -22,7 +22,7 @@ struct SettingsView: View {
 
                 Section("Absender") {
                     TextField("Formeller Absender", text: $store.profile.formalSender)
-                    TextField("Persoenlicher Absender", text: $store.profile.casualSender)
+                    TextField("Persönlicher Absender", text: $store.profile.casualSender)
                     Text("Beispiele: Frau Hiller, Linda, Herr Mustermann, Max Mustermann.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -31,6 +31,14 @@ struct SettingsView: View {
                 Section("Schreibstil") {
                     TextEditor(text: $store.profile.styleVoice)
                         .frame(minHeight: 90)
+                }
+
+                Section("Lernregeln") {
+                    TextEditor(text: $store.profile.learningNotes)
+                        .frame(minHeight: 110)
+                    Text("Diese Regeln nutzt die Tastatur für Ton, Länge und Entscheidung: Antwort, Kooperation, Preis, Termin, Follow-up oder Absage.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Creator-Profil") {
@@ -80,7 +88,7 @@ struct SettingsView: View {
 
                 Section("Profil teilen") {
                     ShareLink("Profil teilen", item: ProfileStore.exportString(for: store.profile))
-                    Button("Speichern und fuer Tastatur kopieren") {
+                    Button("Speichern und für Tastatur kopieren") {
                         saveAndCopyProfile()
                     }
                     VStack(alignment: .leading) {
@@ -116,15 +124,15 @@ struct SettingsView: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    Text("Aktuell erzeugt die Tastatur lokale Entwuerfe. Fuer echte Mail-Kontexte wird spaeter das Read-Only-Mail-Backend verbunden.")
+                    Text("Aktuell erzeugt die Tastatur lokale Entwürfe. Für echte automatische Mail-Erkennung wird später das Read-Only-Mail-Backend verbunden.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
                 Section("Tastatur aktivieren") {
-                    Text("1. iPhone Einstellungen oeffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufuegen\n4. Bei Bedarf Vollen Zugriff erlauben")
+                    Text("1. iPhone Einstellungen öffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufügen\n4. Bei Bedarf Vollen Zugriff erlauben")
                         .font(.footnote)
-                    Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Speichern kopiert das Profil fuer die Tastatur. Dafuer in iOS bei der Tastatur Vollen Zugriff erlauben.")
+                    Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Speichern kopiert das Profil für die Tastatur. Dafür in iOS bei der Tastatur Vollen Zugriff erlauben.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Link("Apple Hinweis zu Tastaturen", destination: URL(string: "https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard")!)
@@ -139,7 +147,7 @@ struct SettingsView: View {
         }
     }
 
-    private func saveAndCopyProfile(message: String = "Gespeichert. Profil ist fuer die Tastatur kopiert.") {
+    private func saveAndCopyProfile(message: String = "Gespeichert. Profil ist für die Tastatur kopiert.") {
         store.save()
         UIPasteboard.general.string = ProfileStore.exportString(for: store.profile)
         statusMessage = message
