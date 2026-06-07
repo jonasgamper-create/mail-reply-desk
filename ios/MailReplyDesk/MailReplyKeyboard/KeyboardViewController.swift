@@ -41,6 +41,7 @@ final class KeyboardViewController: UIInputViewController {
     private let rootStack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
     private let maximumNoteReplacementLength = 520
+    private let maximumClipboardContextLength = 1600
     private let learningPrefix = "mailReplyDesk.learning.kind."
 
     override func viewDidLoad() {
@@ -463,16 +464,35 @@ final class KeyboardViewController: UIInputViewController {
         if containsAny(source, [" absage ", " ablehnen ", " leider nicht ", " nicht passend ", " passt nicht "]) {
             return .decline
         }
-        if containsAny(source, [" termin ", " kalender ", " meeting ", " call ", " zeitfenster ", " zoom ", " teams "]) {
+        if containsAny(source, [
+            " termin ", " kalender ", " meeting ", " call ", " telefonieren ", " telefonat ",
+            " zeitfenster ", " uhr ", " morgen ", " heute ", " montag ", " dienstag ",
+            " mittwoch ", " donnerstag ", " freitag ", " samstag ", " sonntag ",
+            " zoom ", " teams "
+        ]) {
             return .event
         }
-        if containsAny(source, [" preis ", " budget ", " honorar ", " kosten ", " rate ", " fee ", " vergutung ", " vergütung "]) {
+        if containsAny(source, [
+            " preis ", " budget ", " honorar ", " kosten ", " angebot ", " offerte ",
+            " kostenvoranschlag ", " rate ", " fee ", " vergutung ", " vergütung "
+        ]) {
             return .pricing
         }
         if containsAny(source, [" follow-up ", " follow up ", " nachfassen ", " nachfragen ", " reminder ", " erinnerung ", " ruckmeldung ", " rückmeldung "]) {
             return .followUp
         }
-        if containsAny(source, [" kooperation ", " kampagne ", " collab ", " brand ", " ugc ", " reel ", " reels ", " story ", " stories ", " influencer ", " creator ", " nutzungsrechte ", " whitelisting ", " spark ads "]) {
+        if containsAny(source, [" mediakit ", " media kit ", " portfolio ", " press kit "]) {
+            return .mediaKit
+        }
+        if containsAny(source, [" briefing ", " brief ", " infos ", " details ", " eckdaten ", " deliverables ", " freigabe "]) {
+            return .briefing
+        }
+        if containsAny(source, [
+            " kooperation ", " zusammenarbeit ", " kampagne ", " collab ", " partnership ",
+            " brand ", " marke ", " ugc ", " reel ", " reels ", " story ", " stories ",
+            " influencer ", " creator ", " shooting ", " content ", " nutzungsrechte ",
+            " whitelisting ", " spark ads ", " paid usage ", " exklusivitat ", " exklusivität "
+        ]) {
             return .collaboration
         }
         if looksLikeYesNoQuestion(source) {
@@ -495,7 +515,67 @@ final class KeyboardViewController: UIInputViewController {
 
     private func isChatStyle(topic: String) -> Bool {
         let source = normalized(topic)
-        return containsAny(source, [" whatsapp ", " dm ", " chat ", " instagram ", " insta ", " linkedin ", " sms "])
+        return containsAny(source, [
+            " whatsapp ", " whats app ", " wa chat ", " dm ", " direct message ",
+            " chat ", " instagram ", " insta ", " linkedin ", " sms "
+        ])
+    }
+
+    private func contextForDraft(rawNotes: String?) -> String? {
+        if let rawNotes {
+            let trimmed = rawNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+
+        let visibleContext = currentContext().trimmingCharacters(in: .whitespacesAndNewlines)
+        if isUsefulMessageContext(visibleContext) {
+            return visibleContext
+        }
+
+        return clipboardContextIfUseful()
+    }
+
+    private func clipboardContextIfUseful() -> String? {
+        guard hasFullAccess,
+              let copied = UIPasteboard.general.string else {
+            return nil
+        }
+
+        let text = copied.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count >= 12,
+              text.count <= maximumClipboardContextLength,
+              ProfileStore.decodeProfile(from: text) == nil,
+              isUsefulMessageContext(text),
+              !looksSensitive(text) else {
+            return nil
+        }
+        return text
+    }
+
+    private func isUsefulMessageContext(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 8 else { return false }
+        let source = normalized(trimmed)
+
+        if trimmed.contains("?") || trimmed.contains("\n") || trimmed.contains("@") {
+            return true
+        }
+
+        return containsAny(source, [
+            " hallo ", " guten tag ", " hi ", " liebe ", " sehr geehrte ",
+            " kooperation ", " zusammenarbeit ", " kampagne ", " brand ", " angebot ",
+            " preis ", " budget ", " termin ", " meeting ", " call ", " whatsapp ",
+            " instagram ", " reel ", " story ", " briefing ", " rechnung ", " follow up ",
+            " rückmeldung ", " ruckmeldung ", " bitte ", " danke "
+        ])
+    }
+
+    private func looksSensitive(_ text: String) -> Bool {
+        let source = normalized(text)
+        return containsAny(source, [
+            " passwort ", " password ", " tan ", " otp ", " 2fa ", " authentifizierungscode ",
+            " verification code ", " sicherheitscode ", " kreditkarte ", " credit card "
+        ])
     }
 
     private func prefersConciseReplies() -> Bool {
@@ -735,7 +815,7 @@ final class KeyboardViewController: UIInputViewController {
 
     @objc private func insertThreeDrafts() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let context = contextForDraft(rawNotes: rawNotes)
         let drafts = [
             "1. Kurz\n\(makeDraft(kind: .short, contextOverride: context))",
             "2. Freundlich\n\(makeDraft(kind: .friendly, contextOverride: context))",
@@ -793,7 +873,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func insertDraftReplacingNotesIfUseful(kind: DraftKind) {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let context = contextForDraft(rawNotes: rawNotes)
         let draft = makeDraft(kind: kind, contextOverride: context)
         deleteNotesIfNeeded(rawNotes)
         registerUse(kind: kind)
@@ -802,7 +882,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func insertSmartReplyDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let context = contextForDraft(rawNotes: rawNotes)
         let kind = bestKind(for: context ?? currentContext())
         let draft = makeDraft(kind: kind, contextOverride: context)
         deleteNotesIfNeeded(rawNotes)
