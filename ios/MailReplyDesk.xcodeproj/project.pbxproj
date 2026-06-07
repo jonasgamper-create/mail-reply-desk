@@ -13,6 +13,12 @@
 		100000000000000000000004 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000104 /* KeyboardViewController.swift */; };
 		100000000000000000000005 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000103 /* ProfileStore.swift */; };
 		100000000000000000000006 /* MailReplyKeyboard.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 100000000000000000000202 /* MailReplyKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		100000000000000000000007 /* MessageContextStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000109 /* MessageContextStore.swift */; };
+		100000000000000000000008 /* MessageContextStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000109 /* MessageContextStore.swift */; };
+		100000000000000000000009 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000110 /* ShareViewController.swift */; };
+		100000000000000000000010 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000103 /* ProfileStore.swift */; };
+		100000000000000000000011 /* MessageContextStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000109 /* MessageContextStore.swift */; };
+		100000000000000000000012 /* MailReplyShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 100000000000000000000203 /* MailReplyShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -22,6 +28,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 100000000000000000000502;
 			remoteInfo = MailReplyKeyboard;
+		};
+		100000000000000000000303 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000401 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 100000000000000000000503;
+			remoteInfo = MailReplyShare;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -33,6 +46,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				100000000000000000000006 /* MailReplyKeyboard.appex in Embed App Extensions */,
+				100000000000000000000012 /* MailReplyShare.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -48,8 +62,12 @@
 		100000000000000000000106 /* MailReplyKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MailReplyKeyboard/MailReplyKeyboard.entitlements; sourceTree = "<group>"; };
 		100000000000000000000107 /* App Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = App/Info.plist; sourceTree = "<group>"; };
 		100000000000000000000108 /* Keyboard Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = MailReplyKeyboard/Info.plist; sourceTree = "<group>"; };
+		100000000000000000000109 /* MessageContextStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/MessageContextStore.swift; sourceTree = "<group>"; };
+		100000000000000000000110 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailReplyShare/ShareViewController.swift; sourceTree = "<group>"; };
+		100000000000000000000111 /* Share Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = MailReplyShare/Info.plist; sourceTree = "<group>"; };
 		100000000000000000000201 /* MailReplyDesk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MailReplyDesk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000202 /* MailReplyKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MailReplyKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000203 /* MailReplyShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MailReplyShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +85,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		100000000000000000000703 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -75,6 +100,7 @@
 			children = (
 				100000000000000000000802 /* MailReplyDesk */,
 				100000000000000000000803 /* MailReplyKeyboard */,
+				100000000000000000000806 /* MailReplyShare */,
 				100000000000000000000804 /* Shared */,
 				100000000000000000000805 /* Products */,
 			);
@@ -105,6 +131,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000103 /* ProfileStore.swift */,
+				100000000000000000000109 /* MessageContextStore.swift */,
 			);
 			path = MailReplyDesk;
 			sourceTree = "<group>";
@@ -114,8 +141,18 @@
 			children = (
 				100000000000000000000201 /* MailReplyDesk.app */,
 				100000000000000000000202 /* MailReplyKeyboard.appex */,
+				100000000000000000000203 /* MailReplyShare.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		100000000000000000000806 /* MailReplyShare */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000110 /* ShareViewController.swift */,
+				100000000000000000000111 /* Share Info.plist */,
+			);
+			path = MailReplyDesk;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -133,6 +170,7 @@
 			);
 			dependencies = (
 				100000000000000000000302 /* PBXTargetDependency */,
+				100000000000000000000304 /* PBXTargetDependency */,
 			);
 			name = MailReplyDesk;
 			productName = MailReplyDesk;
@@ -155,6 +193,22 @@
 			productReference = 100000000000000000000202 /* MailReplyKeyboard.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		100000000000000000000503 /* MailReplyShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000001004 /* Build configuration list for PBXNativeTarget "MailReplyShare" */;
+			buildPhases = (
+				100000000000000000000903 /* Sources */,
+				100000000000000000000703 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MailReplyShare;
+			productName = MailReplyShare;
+			productReference = 100000000000000000000203 /* MailReplyShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -169,6 +223,9 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					100000000000000000000502 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					100000000000000000000503 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -188,6 +245,7 @@
 			targets = (
 				100000000000000000000501 /* MailReplyDesk */,
 				100000000000000000000502 /* MailReplyKeyboard */,
+				100000000000000000000503 /* MailReplyShare */,
 			);
 		};
 /* End PBXProject section */
@@ -200,6 +258,7 @@
 				100000000000000000000001 /* MailReplyDeskApp.swift in Sources */,
 				100000000000000000000002 /* SettingsView.swift in Sources */,
 				100000000000000000000003 /* ProfileStore.swift in Sources */,
+				100000000000000000000007 /* MessageContextStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -209,6 +268,17 @@
 			files = (
 				100000000000000000000004 /* KeyboardViewController.swift in Sources */,
 				100000000000000000000005 /* ProfileStore.swift in Sources */,
+				100000000000000000000008 /* MessageContextStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000903 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000009 /* ShareViewController.swift in Sources */,
+				100000000000000000000010 /* ProfileStore.swift in Sources */,
+				100000000000000000000011 /* MessageContextStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,6 +289,11 @@
 			isa = PBXTargetDependency;
 			target = 100000000000000000000502 /* MailReplyKeyboard */;
 			targetProxy = 100000000000000000000301 /* PBXContainerItemProxy */;
+		};
+		100000000000000000000304 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 100000000000000000000503 /* MailReplyShare */;
+			targetProxy = 100000000000000000000303 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -439,6 +514,58 @@
 			};
 			name = Release;
 		};
+		100000000000000000001107 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MailReplyDesk/MailReplyShare/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonasgamper.mailreplydesk.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Debug;
+		};
+		100000000000000000001108 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MailReplyDesk/MailReplyShare/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonasgamper.mailreplydesk.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -456,6 +583,15 @@
 			buildConfigurations = (
 				100000000000000000001105 /* Debug */,
 				100000000000000000001106 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000001004 /* Build configuration list for PBXNativeTarget "MailReplyShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000001107 /* Debug */,
+				100000000000000000001108 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

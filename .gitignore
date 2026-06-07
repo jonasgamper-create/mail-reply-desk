@@ -2,6 +2,9 @@
 Thumbs.db
 .env
 .env.*
+!.env.example
+!backend/.env.example
+backend/.local/
 *.log
 node_modules/
 dist/

@@ -18,7 +18,7 @@ Grenze: Die Tastatur sieht nur den Text im aktuellen Eingabefeld, kurze System-K
 
 ## P1: Share Extension für perfekten Kontext
 
-Empfohlener nächster Schritt.
+Status: als `MailReplyShare` Extension umgesetzt.
 
 Eine Share Extension nimmt bewusst geteilten Text entgegen:
 
@@ -30,8 +30,8 @@ Eine Share Extension nimmt bewusst geteilten Text entgegen:
 Technische Umsetzung:
 
 - iOS Share Extension mit `NSExtensionActivationSupportsText`.
-- Speicherung in App Group, wenn ein bezahlter Apple Developer Account/App Groups verfügbar ist.
-- Ohne App Group: Übergabe über Container-App und Clipboard-Fallback.
+- Speicherung über lokalen Context Store, wenn möglich.
+- Clipboard-Fallback mit `Mail Reply Desk Context`, damit der kostenlose iPhone-Test ohne App Group funktioniert.
 - Kontext-Daten lokal halten, automatisch nach kurzer Zeit löschen.
 - Keine Senderechte, keine heimliche Hintergrundüberwachung.
 
@@ -39,13 +39,16 @@ Warum das wichtig ist: Diese Lösung ist deutlich näher an echter Nachrichtener
 
 ## P2: Mail-/Kalender-Backend
 
-Für automatische Mailableitung ohne Kopieren.
+Status: lokales Gmail Read-only Backend in `backend/` angelegt.
 
 Gmail / Google Workspace:
 
 - `gmail.readonly` zum Lesen von Nachrichten.
 - `gmail.compose` nur falls echte Gmail-Entwürfe erstellt werden sollen.
 - Keine `gmail.send`-Rechte.
+- Startpunkt: `backend/gmail-readonly-server.mjs`.
+- Login: `http://127.0.0.1:8787/auth/google`.
+- Nachrichten: `http://127.0.0.1:8787/gmail/messages?max=10`.
 
 iCloud:
 

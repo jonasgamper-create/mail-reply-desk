@@ -681,12 +681,22 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func clipboardContextIfUseful() -> String? {
-        guard hasFullAccess,
-              let copied = UIPasteboard.general.string else {
-            return nil
+        if let shared = MessageContextStore.loadRecent(),
+           isUsefulMessageContext(shared),
+           !looksSensitive(shared) {
+            return shared
         }
 
-        let text = copied.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard hasFullAccess else { return nil }
+
+        let copiedText: String?
+        if let explicitContext = MessageContextStore.decodeClipboardContext(UIPasteboard.general.string) {
+            copiedText = explicitContext
+        } else {
+            copiedText = UIPasteboard.general.string
+        }
+
+        let text = copiedText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard text.count >= 12,
               text.count <= maximumClipboardContextLength,
               ProfileStore.decodeProfile(from: text) == nil,
