@@ -40,6 +40,7 @@ final class KeyboardViewController: UIInputViewController {
     private var isShifted = false
     private let rootStack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
+    private let maximumNoteReplacementLength = 520
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -113,8 +114,9 @@ final class KeyboardViewController: UIInputViewController {
         case .tools:
             rootStack.addArrangedSubview(makeToolRow([
                 ("Antwort", #selector(insertReplyDraft)),
-                ("Mail", #selector(insertNewMailDraft)),
-                ("Termin", #selector(insertEventDraft))
+                ("Koop", #selector(insertCollaborationDraft)),
+                ("Termin", #selector(insertEventDraft)),
+                ("Mail", #selector(insertNewMailDraft))
             ]))
             rootStack.addArrangedSubview(makeToolRow([
                 ("3 Entw.", #selector(insertThreeDrafts)),
@@ -311,16 +313,16 @@ final class KeyboardViewController: UIInputViewController {
         textDocumentProxy.insertText(text)
     }
 
-    private func currentContext() -> String {
+    private func currentContext(maxLength: Int = 720) -> String {
         let before = textDocumentProxy.documentContextBeforeInput ?? ""
         let after = textDocumentProxy.documentContextAfterInput ?? ""
         let combined = (before + " " + after).trimmingCharacters(in: .whitespacesAndNewlines)
-        if combined.count <= 220 { return combined }
-        return String(combined.suffix(220))
+        if combined.count <= maxLength { return combined }
+        return String(combined.suffix(maxLength))
     }
 
-    private func makeDraft(kind: DraftKind) -> String {
-        let context = currentContext()
+    private func makeDraft(kind: DraftKind, contextOverride: String? = nil) -> String {
+        let context = contextOverride?.trimmingCharacters(in: .whitespacesAndNewlines) ?? currentContext()
         let topic = context.isEmpty ? defaultTopic(for: kind) : context
 
         switch language {
@@ -332,36 +334,39 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func makeGermanDraft(kind: DraftKind, topic: String) -> String {
-        let formal = shouldUseFormalTone(for: kind)
+        let formal = shouldUseFormalTone(for: kind, topic: topic)
         let greeting = formal ? "Guten Tag," : "Hallo,"
-        let signoff = formal ? "Beste Gruesse\n\(profile.fullName)" : "Liebe Gruesse\n\(profile.casualSender)"
+        let signoff = formal ? "Beste Gruesse\n\(senderName(formal: true))" : "Liebe Gruesse\n\(senderName(formal: false))"
+        let focus = focusLine(topic: topic, formal: formal)
 
         let body: String
         switch kind {
         case .reply:
-            body = formal
-                ? "vielen Dank fuer Ihre Nachricht. Ich habe die Punkte aufgenommen und melde mich gerne mit einem klaren Vorschlag dazu.\n\nZum aktuellen Stand: \(topic)"
-                : "danke dir fuer die Nachricht. Ich habe die Punkte aufgenommen und melde mich gerne mit einem klaren Vorschlag dazu.\n\nZum aktuellen Stand: \(topic)"
+            body = replyBodyGerman(topic: topic, formal: formal)
         case .newMail:
-            body = "ich melde mich wegen \(topic). Die wichtigsten Punkte habe ich unten kompakt zusammengefasst."
+            body = formal
+                ? "ich melde mich wegen \(cleanTopic(topic)). Die wichtigsten Punkte habe ich kompakt zusammengefasst.\n\n\(focus)"
+                : "ich melde mich wegen \(cleanTopic(topic)). Die wichtigsten Punkte habe ich kompakt zusammengefasst.\n\n\(focus)"
+        case .collaboration:
+            body = collaborationBodyGerman(topic: topic, formal: formal)
         case .event:
             body = formal
-                ? "gerne bereite ich einen Termin dazu vor. Senden Sie mir bitte zwei bis drei passende Zeitfenster, dann koordiniere ich den naechsten Schritt."
-                : "gerne bereite ich einen Termin dazu vor. Schick mir bitte zwei bis drei passende Zeitfenster, dann koordiniere ich den naechsten Schritt."
+                ? "gerne bereite ich einen Termin dazu vor.\n\n\(focus)\n\nBitte senden Sie mir zwei bis drei passende Zeitfenster. Alternativ schlage ich gerne einen 30-minuetigen Call vor, sobald Timing und Ziel klar sind."
+                : "gerne bereite ich einen Termin dazu vor.\n\n\(focus)\n\nSchick mir bitte zwei bis drei passende Zeitfenster. Alternativ schlage ich gerne einen 30-minuetigen Call vor, sobald Timing und Ziel klar sind."
         case .short:
             body = formal
-                ? "vielen Dank, das passt grundsaetzlich. Bitte senden Sie mir noch die fehlenden Eckdaten, dann kann ich es final einschaetzen."
-                : "danke dir, das passt grundsaetzlich. Schick mir bitte noch die fehlenden Eckdaten, dann kann ich es final einschaetzen."
+                ? "vielen Dank, das klingt grundsaetzlich passend. Bitte senden Sie mir noch Scope, Timing, Budgetrahmen und Nutzungsrechte, dann gebe ich Ihnen eine konkrete Rueckmeldung."
+                : "danke dir, das klingt grundsaetzlich passend. Schick mir bitte noch Scope, Timing, Budgetrahmen und Nutzungsrechte, dann gebe ich dir eine konkrete Rueckmeldung."
         case .friendly:
             body = formal
-                ? "vielen Dank fuer Ihre Nachricht. Das klingt grundsaetzlich spannend, ich wuerde die Details gerne sauber abstimmen und danach den passenden Vorschlag schicken."
-                : "danke dir fuer die Nachricht. Das klingt grundsaetzlich spannend, ich wuerde die Details gerne sauber abstimmen und danach den passenden Vorschlag schicken."
+                ? "vielen Dank fuer Ihre Nachricht. Das klingt spannend und ich freue mich ueber die Anfrage.\n\n\(focus)\n\nIch wuerde die Details gerne sauber abstimmen und danach einen passenden Vorschlag schicken."
+                : "danke dir fuer die Nachricht. Das klingt spannend und ich freue mich ueber die Anfrage.\n\n\(focus)\n\nIch wuerde die Details gerne sauber abstimmen und danach einen passenden Vorschlag schicken."
         case .professional:
-            body = "vielen Dank fuer Ihre Nachricht. Ich pruefe die Details gerne strukturiert und melde mich mit einer verbindlichen Rueckmeldung zu Scope, Timing und naechsten Schritten."
+            body = "vielen Dank fuer Ihre Nachricht. Damit ich die Anfrage belastbar einschaetzen kann, brauche ich bitte die finalen Eckdaten zu Scope, Timing, Deliverables, Budgetrahmen und Nutzungsrechten.\n\n\(focus)\n\nSobald diese Punkte klar sind, melde ich mich mit einer strukturierten Rueckmeldung und einem konkreten naechsten Schritt."
         case .briefing:
             body = "vielen Dank fuer die Anfrage. Grundsaetzlich klingt die Kooperation interessant. Fuer eine konkrete Einschaetzung brauche ich bitte noch:\n\n\(briefingList(limit: 7))"
         case .pricing:
-            body = "zum Budget kann ich eine serioese Einschaetzung geben, sobald der Scope klar ist. Relevant sind vor allem:\n\n\(briefingList(limit: 6))\n\n\(profile.rateCardNote)\n\n\(profile.usageRightsPolicy)"
+            body = pricingBodyGerman(formal: formal)
         case .followUp:
             body = formal
                 ? "ich wollte wegen der Anfrage kurz nachfragen. Wenn die Kooperation weiterhin relevant ist, senden Sie mir gerne noch die fehlenden Details:\n\n\(briefingList(limit: 5))"
@@ -382,24 +387,27 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func makeEnglishDraft(kind: DraftKind, topic: String) -> String {
-        let formal = shouldUseFormalTone(for: kind)
+        let formal = shouldUseFormalTone(for: kind, topic: topic)
         let greeting = formal ? "Hello," : "Hi,"
-        let signoff = formal ? "Best regards\n\(profile.fullName)" : "Best\n\(profile.casualSender)"
+        let signoff = formal ? "Best regards\n\(senderName(formal: true))" : "Best\n\(senderName(formal: false))"
+        let focus = focusLine(topic: topic, formal: formal)
 
         let body: String
         switch kind {
         case .reply:
-            body = "thank you for your message. I have noted the key points and will gladly come back with a clear next step.\n\nCurrent context: \(topic)"
+            body = "thank you for your message. I have noted the key points and would like to align the next step properly.\n\n\(focus)\n\nPlease send me any missing details regarding scope, timing, budget and usage rights so I can come back with a clear recommendation."
         case .newMail:
-            body = "I am reaching out regarding \(topic). I have summarized the key points below."
+            body = "I am reaching out regarding \(cleanTopic(topic)). I have summarized the key points below.\n\n\(focus)"
+        case .collaboration:
+            body = "thank you for the request. The collaboration sounds interesting and could be a good fit for \(cleanTopic(profile.niche)).\n\n\(focus)\n\nTo assess it properly, I would need the briefing, deliverables, timing, budget range, usage rights, exclusivity and approval process."
         case .event:
-            body = "I am happy to prepare a meeting. Please send me two or three suitable time slots and I will coordinate the next step."
+            body = "I am happy to prepare a meeting.\n\n\(focus)\n\nPlease send me two or three suitable time slots. Alternatively, I can suggest a 30-minute call once the goal and timing are clear."
         case .short:
-            body = "thank you, this generally works. Please send over the remaining key details so I can assess it properly."
+            body = "thank you, this generally sounds suitable. Please send over the scope, timing, budget range and usage rights so I can give you a concrete response."
         case .friendly:
-            body = "thank you for your message. This sounds interesting, and I would be happy to align on the details before sending a clear proposal."
+            body = "thank you for your message. This sounds interesting and I appreciate the request.\n\n\(focus)\n\nI would be happy to align on the details before sending a clear proposal."
         case .professional:
-            body = "thank you for your message. I will review the details carefully and come back with a structured response regarding scope, timing and next steps."
+            body = "thank you for your message. To assess the request properly, I would need the final details regarding scope, timing, deliverables, budget range and usage rights.\n\n\(focus)\n\nOnce these points are clear, I will come back with a structured response and a concrete next step."
         case .briefing:
             body = "thank you for the request. The collaboration sounds interesting. To assess it properly, I would need:\n\n\(briefingList(limit: 7))"
         case .pricing:
@@ -421,6 +429,8 @@ final class KeyboardViewController: UIInputViewController {
         switch kind {
         case .event:
             return language == .german ? "den Termin" : "the meeting"
+        case .collaboration:
+            return language == .german ? "die Kooperation" : "the collaboration"
         case .newMail:
             return language == .german ? "die Anfrage" : "the request"
         default:
@@ -428,9 +438,82 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    private func shouldUseFormalTone(for kind: DraftKind) -> Bool {
+    private func shouldUseFormalTone(for kind: DraftKind, topic: String) -> Bool {
         if kind == .professional { return true }
+        let lower = normalized(topic)
+        let formalMarkers = [" sie ", " ihnen ", " ihr ", " ihre ", " frau ", " herr ", " sehr geehrte", " guten tag"]
+        let casualMarkers = [" du ", " dir ", "dich", "euch", "hallo linda", "hi linda", "liebe linda"]
+        if formalMarkers.contains(where: { lower.contains($0) }) { return true }
+        if casualMarkers.contains(where: { lower.contains($0) }) { return false }
         return formality == .formal
+    }
+
+    private func senderName(formal: Bool) -> String {
+        let preferred = formal ? profile.formalSender : profile.casualSender
+        let trimmed = preferred.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        let fullName = profile.fullName
+        return fullName.isEmpty ? profile.appName : fullName
+    }
+
+    private func normalized(_ text: String) -> String {
+        " \(text.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).lowercased()) "
+    }
+
+    private func cleanTopic(_ topic: String, maxLength: Int = 360) -> String {
+        let cleaned = topic
+            .replacingOccurrences(of: "\n", with: "; ")
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.count <= maxLength { return cleaned }
+        return String(cleaned.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
+    }
+
+    private func focusLine(topic: String, formal: Bool) -> String {
+        let topic = cleanTopic(topic)
+        let fallback = language == .german ? "die Anfrage" : "the request"
+        guard !topic.isEmpty, topic != fallback else {
+            return language == .german ? "Wichtig sind fuer mich die Eckdaten, der genaue Scope und der naechste Schritt." : "The key points for me are the details, the exact scope and the next step."
+        }
+        if language == .english {
+            return "Current context: \(topic)"
+        }
+        return formal ? "Aktueller Kontext: \(topic)" : "Ich habe mir notiert: \(topic)"
+    }
+
+    private func replyBodyGerman(topic: String, formal: Bool) -> String {
+        let lower = normalized(topic)
+        if lower.contains("preis") || lower.contains("budget") || lower.contains("honorar") || lower.contains("rate") {
+            return pricingBodyGerman(formal: formal)
+        }
+        if lower.contains("kooperation") || lower.contains("collab") || lower.contains("kampagne") || lower.contains("brand") || lower.contains("ugc") {
+            return collaborationBodyGerman(topic: topic, formal: formal)
+        }
+        if lower.contains("termin") || lower.contains("call") || lower.contains("meeting") || lower.contains("kalender") {
+            return formal
+                ? "vielen Dank fuer Ihre Nachricht. Gerne bereite ich den Termin vor.\n\n\(focusLine(topic: topic, formal: formal))\n\nBitte senden Sie mir zwei bis drei passende Zeitfenster, dann koordiniere ich den naechsten Schritt."
+                : "danke dir fuer die Nachricht. Gerne bereite ich den Termin vor.\n\n\(focusLine(topic: topic, formal: formal))\n\nSchick mir bitte zwei bis drei passende Zeitfenster, dann koordiniere ich den naechsten Schritt."
+        }
+        return formal
+            ? "vielen Dank fuer Ihre Nachricht. Ich habe die Punkte aufgenommen und wuerde den naechsten Schritt gerne sauber abstimmen.\n\n\(focusLine(topic: topic, formal: formal))\n\nBitte senden Sie mir noch die fehlenden Eckdaten, falls etwas offen ist. Danach kann ich Ihnen eine konkrete Rueckmeldung geben."
+            : "danke dir fuer die Nachricht. Ich habe die Punkte aufgenommen und wuerde den naechsten Schritt gerne sauber abstimmen.\n\n\(focusLine(topic: topic, formal: formal))\n\nSchick mir gerne noch die fehlenden Eckdaten, falls etwas offen ist. Danach kann ich dir eine konkrete Rueckmeldung geben."
+    }
+
+    private func collaborationBodyGerman(topic: String, formal: Bool) -> String {
+        let intro = formal
+            ? "vielen Dank fuer die Anfrage. Die Kooperation klingt grundsaetzlich interessant und passt potenziell zu \(cleanTopic(profile.niche))."
+            : "danke dir fuer die Anfrage. Die Kooperation klingt grundsaetzlich interessant und passt potenziell zu \(cleanTopic(profile.niche))."
+        let ask = formal
+            ? "Fuer eine serioese Einschaetzung senden Sie mir bitte noch die wichtigsten Eckdaten:"
+            : "Fuer eine serioese Einschaetzung schick mir bitte noch die wichtigsten Eckdaten:"
+        return "\(intro)\n\n\(focusLine(topic: topic, formal: formal))\n\n\(ask)\n\n\(briefingList(limit: 7))\n\nWichtig: \(profile.usageRightsPolicy)"
+    }
+
+    private func pricingBodyGerman(formal: Bool) -> String {
+        let ask = formal
+            ? "zum Budget kann ich eine serioese Einschaetzung geben, sobald der Scope klar ist. Relevant sind vor allem:"
+            : "zum Budget kann ich eine serioese Einschaetzung geben, sobald der Scope klar ist. Relevant sind vor allem:"
+        return "\(ask)\n\n\(briefingList(limit: 6))\n\n\(profile.rateCardNote)\n\n\(profile.usageRightsPolicy)"
     }
 
     private func briefingList(limit: Int) -> String {
@@ -502,69 +585,112 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func insertReplyDraft() {
-        insertText(makeDraft(kind: .reply))
+        insertDraftReplacingNotesIfUseful(kind: .reply)
     }
 
     @objc private func insertNewMailDraft() {
-        insertText(makeDraft(kind: .newMail))
+        insertDraftReplacingNotesIfUseful(kind: .newMail)
+    }
+
+    @objc private func insertCollaborationDraft() {
+        insertDraftReplacingNotesIfUseful(kind: .collaboration)
     }
 
     @objc private func insertEventDraft() {
-        insertText(makeDraft(kind: .event))
+        insertDraftReplacingNotesIfUseful(kind: .event)
     }
 
     @objc private func insertThreeDrafts() {
+        let rawNotes = notesBeforeInputForReplacement()
+        let context = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
         let drafts = [
-            "1.\n\(makeDraft(kind: .short))",
-            "2.\n\(makeDraft(kind: .friendly))",
-            "3.\n\(makeDraft(kind: .professional))"
+            "1. Kurz\n\(makeDraft(kind: .short, contextOverride: context))",
+            "2. Freundlich\n\(makeDraft(kind: .friendly, contextOverride: context))",
+            "3. Professionell\n\(makeDraft(kind: .professional, contextOverride: context))"
         ]
+        deleteNotesIfNeeded(rawNotes)
         insertText(drafts.joined(separator: "\n\n---\n\n"))
     }
 
     @objc private func insertShortDraft() {
-        insertText(makeDraft(kind: .short))
+        insertDraftReplacingNotesIfUseful(kind: .short)
     }
 
     @objc private func insertFriendlyDraft() {
-        insertText(makeDraft(kind: .friendly))
+        insertDraftReplacingNotesIfUseful(kind: .friendly)
     }
 
     @objc private func insertProfessionalDraft() {
-        insertText(makeDraft(kind: .professional))
+        insertDraftReplacingNotesIfUseful(kind: .professional)
     }
 
     @objc private func insertBriefingDraft() {
-        insertText(makeDraft(kind: .briefing))
+        insertDraftReplacingNotesIfUseful(kind: .briefing)
     }
 
     @objc private func insertPricingDraft() {
-        insertText(makeDraft(kind: .pricing))
+        insertDraftReplacingNotesIfUseful(kind: .pricing)
     }
 
     @objc private func insertFollowUpDraft() {
-        insertText(makeDraft(kind: .followUp))
+        insertDraftReplacingNotesIfUseful(kind: .followUp)
     }
 
     @objc private func insertMediaKitDraft() {
-        insertText(makeDraft(kind: .mediaKit))
+        insertDraftReplacingNotesIfUseful(kind: .mediaKit)
     }
 
     @objc private func insertDeclineDraft() {
-        insertText(makeDraft(kind: .decline))
+        insertDraftReplacingNotesIfUseful(kind: .decline)
     }
 
     @objc private func insertInvoiceDraft() {
-        insertText(makeDraft(kind: .invoice))
+        insertDraftReplacingNotesIfUseful(kind: .invoice)
     }
 
     @objc private func insertSignature() {
         if language == .english {
-            insertText("Best regards\n\(profile.fullName)")
+            insertText("Best regards\n\(senderName(formal: true))")
         } else if formality == .formal {
-            insertText("Beste Gruesse\n\(profile.fullName)")
+            insertText("Beste Gruesse\n\(senderName(formal: true))")
         } else {
-            insertText("Liebe Gruesse\n\(profile.casualSender)")
+            insertText("Liebe Gruesse\n\(senderName(formal: false))")
+        }
+    }
+
+    private func insertDraftReplacingNotesIfUseful(kind: DraftKind) {
+        let rawNotes = notesBeforeInputForReplacement()
+        let context = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let draft = makeDraft(kind: kind, contextOverride: context)
+        deleteNotesIfNeeded(rawNotes)
+        insertText(draft)
+    }
+
+    private func notesBeforeInputForReplacement() -> String? {
+        guard (textDocumentProxy.documentContextAfterInput ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        guard let before = textDocumentProxy.documentContextBeforeInput, !before.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        let trimmed = before.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count <= maximumNoteReplacementLength else { return nil }
+
+        let lower = normalized(trimmed)
+        let protectedMailMarkers = [
+            "guten tag,", "hallo,", "liebe gruesse", "liebe grusse", "beste gruesse",
+            "mit freundlichen gruessen", "best regards", "kind regards", "sent from"
+        ]
+        if protectedMailMarkers.contains(where: { lower.contains($0) }) {
+            return nil
+        }
+        return before
+    }
+
+    private func deleteNotesIfNeeded(_ notes: String?) {
+        guard let notes else { return }
+        for _ in notes {
+            textDocumentProxy.deleteBackward()
         }
     }
 
@@ -594,6 +720,7 @@ final class KeyboardViewController: UIInputViewController {
 private enum DraftKind {
     case reply
     case newMail
+    case collaboration
     case event
     case short
     case friendly
