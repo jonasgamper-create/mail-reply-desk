@@ -14,6 +14,11 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `http://127.0.0.1:${PORT}/oauth/google/callback`;
 const FOCUS_QUERY = process.env.GMAIL_FOCUS_QUERY || "newer_than:30d";
+const ALLOWED_ORIGINS = splitEnvList(process.env.GMAIL_ALLOWED_ORIGINS || [
+  "http://127.0.0.1:4173",
+  "http://localhost:4173",
+  "https://jonasgamper-create.github.io"
+].join(","));
 const TOKEN_PATH = join(__dirname, ".local", "google-token.json");
 const STATE_PATH = join(__dirname, ".local", "oauth-state.txt");
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
@@ -22,8 +27,16 @@ const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host || `127.0.0.1:${PORT}`}`);
 
+    if (request.method === "OPTIONS") {
+      return sendNoContent(request, response);
+    }
+
     if (request.method === "GET" && url.pathname === "/health") {
-      return sendJSON(response, 200, { ok: true, service: "mail-reply-desk-gmail-readonly" });
+      return sendJSON(request, response, 200, { ok: true, service: "mail-reply-desk-gmail-readonly" });
+    }
+
+    if (request.method === "GET" && url.pathname === "/gmail/status") {
+      return sendJSON(request, response, 200, await gmailStatus());
     }
 
     if (request.method === "GET" && url.pathname === "/auth/google") {
@@ -38,21 +51,27 @@ const server = createServer(async (request, response) => {
       const maxResults = Math.min(Number(url.searchParams.get("max") || 10), 25);
       const query = url.searchParams.get("q") || FOCUS_QUERY;
       const messages = await listMessages({ maxResults, query });
-      return sendJSON(response, 200, { query, messages });
+      return sendJSON(request, response, 200, { query, messages });
     }
 
     if (request.method === "GET" && url.pathname.startsWith("/gmail/messages/")) {
       const id = decodeURIComponent(url.pathname.replace("/gmail/messages/", ""));
       const message = await getMessage(id);
-      return sendJSON(response, 200, message);
+      return sendJSON(request, response, 200, message);
     }
 
-    sendJSON(response, 404, {
+    if (request.method === "GET" && url.pathname.startsWith("/gmail/threads/")) {
+      const id = decodeURIComponent(url.pathname.replace("/gmail/threads/", ""));
+      const thread = await getThread(id);
+      return sendJSON(request, response, 200, thread);
+    }
+
+    sendJSON(request, response, 404, {
       error: "not_found",
-      routes: ["/health", "/auth/google", "/gmail/messages", "/gmail/messages/:id"]
+      routes: ["/health", "/gmail/status", "/auth/google", "/gmail/messages", "/gmail/messages/:id", "/gmail/threads/:id"]
     });
   } catch (error) {
-    sendJSON(response, 500, {
+    sendJSON(request, response, 500, {
       error: "server_error",
       message: error instanceof Error ? error.message : String(error)
     });
@@ -134,6 +153,25 @@ async function getMessage(id, options = { includeBody: true }) {
   }
 
   const data = await gmailFetch(url, token);
+  return extractMessage(data, { includeBody: options.includeBody });
+}
+
+async function getThread(id) {
+  const token = await getValidAccessToken();
+  const url = new URL(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${encodeURIComponent(id)}`);
+  url.searchParams.set("format", "full");
+  const data = await gmailFetch(url, token);
+  const messages = (data.messages || []).map((message) => extractMessage(message, { includeBody: true }));
+  return {
+    id: data.id,
+    historyId: data.historyId,
+    messages,
+    latest: messages[messages.length - 1] || null,
+    contextText: formatThreadContext(messages)
+  };
+}
+
+function extractMessage(data, options = { includeBody: true }) {
   const headers = Object.fromEntries((data.payload?.headers || []).map((header) => [header.name.toLowerCase(), header.value]));
   const body = options.includeBody ? extractPlainText(data.payload) : undefined;
 
@@ -146,6 +184,40 @@ async function getMessage(id, options = { includeBody: true }) {
     date: headers.date || "",
     snippet: data.snippet || "",
     body
+  };
+}
+
+function formatThreadContext(messages) {
+  return messages.map((message) => [
+    `From: ${message.from}`,
+    `To: ${message.to}`,
+    `Date: ${message.date}`,
+    `Subject: ${message.subject}`,
+    "",
+    message.body || message.snippet || ""
+  ].join("\n")).join("\n\n---\n\n");
+}
+
+async function gmailStatus() {
+  const hasOAuthConfig = Boolean(CLIENT_ID && CLIENT_SECRET);
+  if (!existsSync(TOKEN_PATH)) {
+    return {
+      configured: hasOAuthConfig,
+      connected: false,
+      scope: SCOPES,
+      authUrl: "/auth/google",
+      message: hasOAuthConfig ? "OAuth konfiguriert, Gmail noch nicht verbunden." : "GOOGLE_CLIENT_ID und GOOGLE_CLIENT_SECRET fehlen."
+    };
+  }
+
+  const token = await loadToken();
+  return {
+    configured: hasOAuthConfig,
+    connected: true,
+    scope: SCOPES,
+    expiresAt: token.expires_at,
+    authUrl: "/auth/google",
+    message: "Gmail Read-only ist verbunden."
   };
 }
 
@@ -273,10 +345,15 @@ function readFileSyncSafe(path) {
   return existsSync(path) ? Buffer.from(readFileSync(path)).toString("utf8") : "";
 }
 
-function sendJSON(response, status, data) {
+function sendNoContent(request, response) {
+  response.writeHead(204, corsHeaders(request));
+  response.end();
+}
+
+function sendJSON(request, response, status, data) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "http://127.0.0.1:4173"
+    ...corsHeaders(request)
   });
   response.end(JSON.stringify(data, null, 2));
 }
@@ -294,4 +371,23 @@ function escapeHTML(value) {
     "\"": "&quot;",
     "'": "&#039;"
   }[char]));
+}
+
+function corsHeaders(request) {
+  const origin = request.headers.origin || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Private-Network": "true",
+    "Vary": "Origin"
+  };
+}
+
+function splitEnvList(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }

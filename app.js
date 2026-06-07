@@ -1,6 +1,8 @@
 const STORAGE_KEY = "linda-social-desk-v1";
 
 let activeSuggestions = [];
+let gmailMessages = [];
+let selectedGmailThreadId = "";
 
 const DEFAULT_STATE = {
   owner: {
@@ -89,6 +91,8 @@ const DEFAULT_STATE = {
   settings: {
     apiMode: "local",
     backendUrl: "",
+    gmailBackendUrl: "http://127.0.0.1:8787",
+    gmailQuery: "to:info@jonnyandlinda.com newer_than:30d",
     targetLanguage: "de",
     allowedMailOnly: true,
     primaryCalendar: "icloud",
@@ -131,7 +135,7 @@ function bindEvents() {
     button.addEventListener("click", () => setWorkflowMode(button.dataset.workflowMode));
   });
 
-  const settingSelectors = new Set(["#apiMode", "#backendUrl", "#allowedMailOnly", "#primaryCalendar", "#calendarMode"]);
+  const settingSelectors = new Set(["#apiMode", "#backendUrl", "#gmailBackendUrl", "#gmailQuery", "#allowedMailOnly", "#primaryCalendar", "#calendarMode"]);
   [
     "#fromAccount",
     "#brandSelect",
@@ -160,6 +164,8 @@ function bindEvents() {
     "#calendarTopics",
     "#apiMode",
     "#backendUrl",
+    "#gmailBackendUrl",
+    "#gmailQuery",
     "#allowedMailOnly",
     "#primaryCalendar",
     "#calendarMode"
@@ -180,6 +186,9 @@ function bindEvents() {
   });
 
   $("#generateContent").addEventListener("click", () => generateContent());
+  $("#checkGmailStatus").addEventListener("click", () => checkGmailStatus());
+  $("#connectGmail").addEventListener("click", () => connectGmail());
+  $("#loadGmailMessages").addEventListener("click", () => loadGmailMessages());
   $("#loadTemplate").addEventListener("click", () => loadSelectedTemplate());
   $("#generateCalendar").addEventListener("click", () => generateCalendarPlan());
   $("#saveProfiles").addEventListener("click", () => saveProfiles());
@@ -430,6 +439,8 @@ function renderProfileInputs() {
 function renderSettings() {
   $("#apiMode").value = state.settings.apiMode;
   $("#backendUrl").value = state.settings.backendUrl;
+  $("#gmailBackendUrl").value = state.settings.gmailBackendUrl || DEFAULT_STATE.settings.gmailBackendUrl;
+  $("#gmailQuery").value = state.settings.gmailQuery || defaultGmailQuery();
   $("#allowedMailOnly").checked = state.settings.allowedMailOnly;
   $("#primaryCalendar").value = state.settings.primaryCalendar;
   $("#calendarMode").value = state.settings.calendarMode;
@@ -625,6 +636,8 @@ function renderCalendar() {
 function syncSettingsFromInputs() {
   state.settings.apiMode = $("#apiMode").value;
   state.settings.backendUrl = $("#backendUrl").value.trim();
+  state.settings.gmailBackendUrl = normalizeBaseUrl($("#gmailBackendUrl").value.trim() || DEFAULT_STATE.settings.gmailBackendUrl);
+  state.settings.gmailQuery = $("#gmailQuery").value.trim() || defaultGmailQuery();
   state.settings.allowedMailOnly = $("#allowedMailOnly").checked;
   state.settings.primaryCalendar = $("#primaryCalendar").value;
   state.settings.calendarMode = $("#calendarMode").value;
@@ -699,6 +712,253 @@ function addAccount() {
   renderAccounts();
   renderAccessPlan();
   updatePromptPreview();
+}
+
+async function checkGmailStatus() {
+  syncSettingsFromInputs();
+  setMailInboxStatus("Status wird geprüft");
+  try {
+    const status = await fetchGmailJSON("/gmail/status");
+    updateGmailAccessStatus(status.connected);
+    setMailInboxStatus(status.message || (status.connected ? "Gmail Read-only verbunden" : "Gmail nicht verbunden"));
+    showToast(status.connected ? "Gmail verbunden" : "Gmail noch nicht verbunden");
+    return status;
+  } catch (error) {
+    setMailInboxStatus("Backend nicht erreichbar");
+    showToast("Gmail-Backend nicht erreichbar");
+    return null;
+  }
+}
+
+function connectGmail() {
+  syncSettingsFromInputs();
+  const url = `${gmailBackendBaseUrl()}/auth/google`;
+  const opened = window.open(url, "_blank", "noopener");
+  setMailInboxStatus("Google Login geöffnet");
+  if (!opened) {
+    window.location.href = url;
+  }
+}
+
+async function loadGmailMessages() {
+  syncSettingsFromInputs();
+  setMailInboxStatus("Mails werden geladen");
+  try {
+    const query = $("#gmailQuery").value.trim() || defaultGmailQuery();
+    const data = await fetchGmailJSON(`/gmail/messages?max=12&q=${encodeURIComponent(query)}`);
+    gmailMessages = data.messages || [];
+    selectedGmailThreadId = "";
+    renderGmailInbox();
+    setMailInboxStatus(`${gmailMessages.length} Mail${gmailMessages.length === 1 ? "" : "s"} geladen`);
+    if (!gmailMessages.length) showToast("Keine passenden Mails gefunden");
+  } catch (error) {
+    renderGmailInbox(error instanceof Error ? error.message : String(error));
+    setMailInboxStatus("Mails konnten nicht geladen werden");
+    showToast("Gmail prüfen: Login oder Backend fehlt");
+  }
+}
+
+async function importGmailThread(index) {
+  const item = gmailMessages[index];
+  if (!item?.threadId) return;
+  selectedGmailThreadId = item.threadId;
+  renderGmailInbox();
+  setMailInboxStatus("Thread wird übernommen");
+
+  try {
+    const thread = await fetchGmailJSON(`/gmail/threads/${encodeURIComponent(item.threadId)}`);
+    applyGmailThreadToReply(thread);
+    const context = collectReplyContext();
+    const suggestions = buildWorkflowSuggestions(context);
+    renderSuggestions(suggestions, 0);
+    setDraft(suggestions[0].text, "Gmail-Thread übernommen");
+    activeCalendarEvent = suggestions[0].event || null;
+    setMailInboxStatus("Thread übernommen, 3 Entwürfe erstellt");
+  } catch (error) {
+    setMailInboxStatus("Thread konnte nicht geladen werden");
+    showToast("Thread konnte nicht geladen werden");
+  }
+}
+
+function renderGmailInbox(errorMessage = "") {
+  const container = $("#gmailInboxList");
+  if (!container) return;
+  if (errorMessage) {
+    container.innerHTML = `<div class="summary-box compact">${escapeHtml(errorMessage)}</div>`;
+    return;
+  }
+  if (!gmailMessages.length) {
+    container.innerHTML = `<div class="summary-box compact">Nach Login werden hier die letzten passenden Mails angezeigt.</div>`;
+    return;
+  }
+
+  container.innerHTML = gmailMessages.map((message, index) => {
+    const from = parseEmailAddress(message.from);
+    const active = selectedGmailThreadId === message.threadId ? "active" : "";
+    return `
+      <button class="mail-card ${active}" type="button" data-gmail-index="${index}">
+        <strong>${escapeHtml(message.subject || "(Ohne Betreff)")}</strong>
+        <span>${escapeHtml(from.name || from.email || message.from || "Unbekannt")} · ${escapeHtml(formatMailDate(message.date))}</span>
+        <p>${escapeHtml(message.snippet || "")}</p>
+      </button>
+    `;
+  }).join("");
+
+  $$("[data-gmail-index]").forEach((button) => {
+    button.addEventListener("click", () => importGmailThread(Number(button.dataset.gmailIndex)));
+  });
+}
+
+function applyGmailThreadToReply(thread) {
+  const messages = thread.messages || [];
+  const contextText = thread.contextText || formatMessagesAsContext(messages);
+  const replyTarget = findLastExternalMessage(messages) || thread.latest || messages[messages.length - 1] || {};
+  const account = findAccountForGmailThread(messages);
+  const sender = parseEmailAddress(replyTarget.from || "");
+
+  activatePanel("replyPanel");
+  setWorkflowMode("reply");
+  setSelectValue("#fromAccount", account?.email || getVisibleAccounts()[0]?.email || "");
+  setSelectValue("#channelSelect", "E-Mail");
+  setSelectValue("#relationshipSelect", "auto");
+  setSelectValue("#senderNameSelect", "auto");
+  setSelectValue("#toneSelect", isCreatorLikeText(contextText) ? "verbindlich" : "freundlich");
+  $("#recipientName").value = sender.name || sender.email || "";
+  $("#replyGoal").value = replyTarget.subject ? `Antwort auf: ${replyTarget.subject}` : "Antwort vorbereiten";
+  $("#threadInput").value = contextText;
+
+  if (!$("#keywordInput").value.trim()) {
+    $("#keywordInput").value = deriveReplyKeywords(contextText).join("\n");
+  }
+
+  updatePromptPreview();
+  updateSummary(true);
+  updateDecisionPreview();
+}
+
+function fetchGmailJSON(path) {
+  return fetch(`${gmailBackendBaseUrl()}${path}`, {
+    method: "GET",
+    headers: { Accept: "application/json" }
+  }).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `HTTP ${response.status}`);
+    }
+    return data;
+  });
+}
+
+function gmailBackendBaseUrl() {
+  return normalizeBaseUrl(state.settings.gmailBackendUrl || DEFAULT_STATE.settings.gmailBackendUrl);
+}
+
+function normalizeBaseUrl(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function defaultGmailQuery() {
+  const account = getVisibleAccounts().find((item) => item.email === "info@jonnyandlinda.com") || getVisibleAccounts()[0];
+  return account?.email ? `to:${account.email} newer_than:30d` : "newer_than:30d";
+}
+
+function setMailInboxStatus(text) {
+  const element = $("#gmailStatusText");
+  if (element) element.textContent = text;
+}
+
+function updateGmailAccessStatus(connected) {
+  state.accounts = state.accounts.map((account) => {
+    const provider = account.provider.toLowerCase();
+    if (!provider.includes("gmail") && !provider.includes("google")) return account;
+    return {
+      ...account,
+      accessStatus: connected ? "read-only verbunden" : account.accessStatus
+    };
+  });
+  saveState();
+  renderAccounts();
+  renderAccessPlan();
+}
+
+function findAccountForGmailThread(messages) {
+  const allRecipients = messages.map((message) => `${message.to || ""} ${message.from || ""}`).join(" ").toLowerCase();
+  return getVisibleAccounts().find((account) => allRecipients.includes(account.email.toLowerCase())) || getVisibleAccounts()[0];
+}
+
+function findLastExternalMessage(messages) {
+  const accountEmails = state.accounts.map((account) => account.email.toLowerCase());
+  return [...messages].reverse().find((message) => {
+    const from = parseEmailAddress(message.from || "").email.toLowerCase();
+    return from && !accountEmails.includes(from);
+  });
+}
+
+function formatMessagesAsContext(messages) {
+  return messages.map((message) => [
+    `From: ${message.from || ""}`,
+    `To: ${message.to || ""}`,
+    `Date: ${message.date || ""}`,
+    `Subject: ${message.subject || ""}`,
+    "",
+    message.body || message.snippet || ""
+  ].join("\n")).join("\n\n---\n\n");
+}
+
+function deriveReplyKeywords(text) {
+  const questions = extractQuestions(text).slice(0, 3).map((item) => `Offene Frage: ${item}`);
+  const dates = extractDateLike(text).slice(0, 3).map((item) => `Termin/Timing klären: ${item}`);
+  const amounts = extractAmounts(text).slice(0, 3).map((item) => `Budget/Preis einordnen: ${item}`);
+  const base = [];
+  if (isCreatorLikeText(text)) {
+    base.push("Briefingdaten prüfen", "Budgetrahmen klären", "Nutzungsrechte/Laufzeit klären");
+  }
+  return [...questions, ...dates, ...amounts, ...base].slice(0, 8);
+}
+
+function isCreatorLikeText(text) {
+  const lower = text.toLowerCase();
+  return containsAny(lower, [
+    "kooperation",
+    "collab",
+    "kampagne",
+    "creator",
+    "influencer",
+    "ugc",
+    "reel",
+    "story",
+    "shooting",
+    "media kit",
+    "nutzungsrechte",
+    "whitelisting",
+    "paid usage"
+  ]);
+}
+
+function parseEmailAddress(value) {
+  const raw = String(value || "");
+  const emailMatch = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  const email = emailMatch ? emailMatch[0] : "";
+  const name = cleanupName(raw.replace(email, "").replace(/\([^)]*\)/g, ""));
+  return { name, email };
+}
+
+function formatMailDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value || "";
+  return date.toLocaleString("de-AT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function setSelectValue(selector, value) {
+  const element = $(selector);
+  if (!element) return;
+  const hasOption = Array.from(element.options || []).some((option) => option.value === value);
+  if (hasOption) element.value = value;
 }
 
 async function handleToolbarAction(action) {
@@ -778,7 +1038,8 @@ function collectReplyContext() {
   const brand = state.brands.find((item) => item.id === $("#brandSelect").value) || state.brands[0];
   const thread = $("#threadInput").value.trim();
   const parsed = parseMailThread(thread);
-  const relationship = resolveRelationship($("#relationshipSelect").value, thread);
+  const channel = $("#channelSelect").value;
+  const relationship = resolveRelationship($("#relationshipSelect").value, thread, channel);
   const senderName = resolveSenderName($("#senderNameSelect").value, account);
   const recipient = $("#recipientName").value.trim() || parsed.senderName || "";
 
@@ -790,7 +1051,7 @@ function collectReplyContext() {
     relationship,
     senderName,
     recipient,
-    channel: $("#channelSelect").value,
+    channel,
     tone: $("#toneSelect").value,
     goal: $("#replyGoal").value.trim(),
     keywords: splitItems($("#keywordInput").value),
@@ -828,6 +1089,8 @@ function getActiveContext(operation) {
 }
 
 function buildEmailReply(context) {
+  if (isChatContext(context)) return buildChatReply(context);
+
   const isEnglish = context.targetLanguage === "en";
   const greeting = makeGreeting(context, isEnglish);
   const signoff = makeSignature(context, isEnglish);
@@ -848,6 +1111,41 @@ function buildEmailReply(context) {
   ].filter(Boolean);
 
   return cleanupDraft(paragraphs.join("\n\n"));
+}
+
+function buildChatReply(context) {
+  const isEnglish = context.targetLanguage === "en";
+  const text = `${context.thread} ${context.goal} ${context.keywords.join(" ")}`.toLowerCase();
+  const keywordLine = makeChatKeywordLine(context.keywords);
+
+  if (isEnglish) {
+    if (containsAny(text, ["sorry", "apolog", "late"])) return "No worries, thanks for letting me know.";
+    if (containsAny(text, ["thank", "thanks"])) return "Of course, happy to help. Let me know if anything else is open.";
+    if (containsAny(text, ["meet", "coffee", "dinner", "time", "free"])) return keywordLine ? `Sounds good. ${keywordLine}` : "Sounds good. Send me when and where, and I will check what works.";
+    if (looksLikeDecisionQuestion(text)) return keywordLine ? `Yes, that should work. ${keywordLine}` : "Yes, that should work. Send me the key details.";
+    if (keywordLine) return cleanupDraft(`Thanks, I saw it. ${keywordLine} I will get back to you shortly.`);
+    return "Thanks, I saw it. I will get back to you shortly.";
+  }
+
+  if (containsAny(text, ["sorry", "entschuldigung", "tut mir leid"])) return "Alles gut, danke fürs Bescheid geben. Mach dir keinen Stress.";
+  if (containsAny(text, ["danke", "vielen dank"])) return "Sehr gerne, freut mich. Gib mir kurz Bescheid, falls noch etwas offen ist.";
+  if (containsAny(text, ["treffen", "kaffee", "essen", "zeit", "kommst du", "lust"])) {
+    return keywordLine ? `Klingt gut. ${keywordLine}` : "Klingt gut. Sag mir bitte kurz wann und wo, dann schaue ich, wie es sich ausgeht.";
+  }
+  if (looksLikeDecisionQuestion(text)) {
+    return keywordLine ? `Ja, passt grundsätzlich. ${keywordLine}` : "Ja, passt grundsätzlich. Schick mir bitte kurz die wichtigsten Details.";
+  }
+  if (keywordLine) return cleanupDraft(`Danke dir, ich habe es gesehen. ${keywordLine} Ich melde mich gleich dazu.`);
+  return "Danke dir, ich habe es gesehen. Ich melde mich gleich dazu.";
+}
+
+function makeChatKeywordLine(keywords) {
+  return keywords
+    .slice(0, 3)
+    .map((item) => stripKeywordLabel(item))
+    .filter(Boolean)
+    .map((item) => `${capitalizeSentence(item)}.`)
+    .join(" ");
 }
 
 function buildCreatorActionDraft(action, context) {
@@ -879,7 +1177,28 @@ function buildWorkflowSuggestions(context) {
 
 function buildDraftSuggestions(context) {
   const intent = inferMailIntent(context);
-  const base = isCreatorCollaborationContext(context)
+  const base = isChatContext(context)
+    ? [
+        {
+          title: "Kurz antworten",
+          tone: "kurz",
+          relationship: "du",
+          summary: "knapp, natürlich, ohne Mail-Grußformel"
+        },
+        {
+          title: "Warm antworten",
+          tone: "freundlich",
+          relationship: "du",
+          summary: "privat oder locker, aber klar"
+        },
+        {
+          title: "Klar entscheiden",
+          tone: "verbindlich",
+          relationship: "du",
+          summary: "Ja/Nein oder nächster Schritt eindeutig"
+        }
+      ]
+    : isCreatorCollaborationContext(context)
     ? [
         {
           title: "Interesse + Briefing",
@@ -1130,6 +1449,7 @@ function makeAnswerParagraphs(context, isEnglish) {
   paragraphs.push(...creatorParagraphs);
 
   if (isEnglish) {
+    if (categories.questions.length) paragraphs.push(`Regarding the open question, I have noted: ${joinReadable(categories.questions)}. I will keep the next step clear and avoid making unconfirmed commitments.`);
     if (categories.appointment.length) paragraphs.push(`I can offer the following time option: ${joinReadable(categories.appointment)}.`);
     if (categories.budget.length) paragraphs.push(`Regarding pricing and budget: ${joinReadable(categories.budget)}.`);
     if (categories.nextStep.length) paragraphs.push(`For the next step, I need: ${joinReadable(categories.nextStep)}.`);
@@ -1142,6 +1462,11 @@ function makeAnswerParagraphs(context, isEnglish) {
     return paragraphs;
   }
 
+  if (categories.questions.length) {
+    paragraphs.push(formal
+      ? `Zu Ihrer offenen Frage halte ich fest: ${joinReadable(categories.questions)}. Ich formuliere den nächsten Schritt klar, ohne unbestätigte Zusagen zu machen.`
+      : `Zu deiner offenen Frage halte ich fest: ${joinReadable(categories.questions)}. Ich formuliere den nächsten Schritt klar, ohne etwas Unbestätigtes zuzusagen.`);
+  }
   if (categories.appointment.length) {
     paragraphs.push(formal
       ? `Für einen Call kann ich Ihnen ${joinReadable(categories.appointment)} anbieten.`
@@ -1272,7 +1597,8 @@ function categorizeKeywords(keywords) {
   return keywords.reduce((categories, item) => {
     const normalized = item.toLowerCase();
     const detail = normalizeKeywordDetail(item);
-    if (containsAny(normalized, ["termin", "call", "meeting", "datum"])) categories.appointment.push(cleanAppointmentDetail(detail));
+    if (containsAny(normalized, ["offene frage", "frage:", "question:"]) || item.trim().endsWith("?")) categories.questions.push(detail);
+    else if (containsAny(normalized, ["termin", "call", "meeting", "datum"])) categories.appointment.push(cleanAppointmentDetail(detail));
     else if (containsAny(normalized, ["preis", "kosten", "budget", "honorar", "paketpreis"])) categories.budget.push(detail);
     else if (containsAny(normalized, ["nächster schritt", "naechster schritt", "next step", "briefing", "kampagnenziel", "ziel der kampagne"])) categories.nextStep.push(detail);
     else if (containsAny(normalized, ["deadline", "frist", "bis", "timing"])) categories.timing.push(detail);
@@ -1283,6 +1609,7 @@ function categorizeKeywords(keywords) {
     else categories.other.push(detail);
     return categories;
   }, {
+    questions: [],
     appointment: [],
     budget: [],
     nextStep: [],
@@ -1345,6 +1672,33 @@ function isCreatorCollaborationContext(context) {
   ]);
 }
 
+function isChatContext(context) {
+  const channel = String(context.channel || "").toLowerCase();
+  if (channel.includes("whatsapp") || channel.includes("instagram dm")) return true;
+  const text = `${context.thread || ""} ${context.goal || ""}`.toLowerCase();
+  return containsAny(text, ["whatsapp", "wa chat", "insta dm", "direct message", "sms"]);
+}
+
+function looksLikeDecisionQuestion(text) {
+  const source = ` ${String(text || "").toLowerCase()} `;
+  return source.includes("?") && containsAny(source, [
+    " passt ",
+    " möglich ",
+    " moeglich ",
+    " geht das ",
+    " kannst du ",
+    " können sie ",
+    " koennen sie ",
+    " sollen wir ",
+    " okay ",
+    " ok ",
+    " works ",
+    " possible ",
+    " can you ",
+    " should we "
+  ]);
+}
+
 function briefingChecklistItems() {
   const items = splitItems(state.owner.briefingChecklist);
   return items.length ? items : [
@@ -1371,6 +1725,7 @@ function buildSuggestionBullets(context) {
   const bullets = [];
   const question = extractQuestions(context.thread)[0];
   if (question) bullets.push(`Frage: ${question}`);
+  if (categories.questions.length) bullets.push(`Offen: ${joinReadable(categories.questions.slice(0, 2))}`);
   if (categories.appointment.length) bullets.push(`Termin: ${joinReadable(categories.appointment)}`);
   if (categories.budget.length) bullets.push(`Budget: ${joinReadable(categories.budget)}`);
   if (categories.nextStep.length) bullets.push(`Nächster Schritt: ${joinReadable(categories.nextStep)}`);
@@ -1392,7 +1747,7 @@ function makeGreeting(context, isEnglish) {
     return name ? `Hello ${formalDisplayName(name)},` : "Hello,";
   }
   if (context.relationship === "du") return `Hallo ${firstName(name) || "zusammen"},`;
-  return name ? `Guten Tag ${formalDisplayName(name)},` : "Guten Tag,";
+  return name ? `Guten Tag ${formalGreetingName(name)},` : "Guten Tag,";
 }
 
 function openerByTone(tone, relationship, isEnglish) {
@@ -1408,11 +1763,11 @@ function openerByTone(tone, relationship, isEnglish) {
     return openers[tone] || openers.freundlich;
   }
   const openers = {
-    kurz: formal ? "vielen Dank für Ihre Nachricht. Die wichtigsten Punkte:" : "danke dir für die Nachricht. Die wichtigsten Punkte:",
-    luxurioes: formal ? "vielen Dank für Ihre Nachricht. Ich stimme die nächsten Schritte gerne sorgfältig mit Ihnen ab." : "danke dir für deine Nachricht. Ich stimme die nächsten Schritte gerne sorgfältig mit dir ab.",
-    verbindlich: formal ? "vielen Dank für Ihre Nachricht. Ich bestätige Ihnen gerne den aktuellen Stand und die nächsten Schritte." : "danke dir für deine Nachricht. Ich bestätige dir gerne den aktuellen Stand und die nächsten Schritte.",
-    entschuldigend: formal ? "vielen Dank für Ihre Geduld und Ihre Nachricht." : "danke dir für deine Geduld und deine Nachricht.",
-    freundlich: formal ? "vielen Dank für Ihre Nachricht. Ich melde mich gerne dazu." : "danke dir für deine Nachricht. Ich melde mich gerne dazu."
+    kurz: formal ? "Vielen Dank für Ihre Nachricht. Die wichtigsten Punkte:" : "Danke dir für die Nachricht. Die wichtigsten Punkte:",
+    luxurioes: formal ? "Vielen Dank für Ihre Nachricht. Ich stimme die nächsten Schritte gerne sorgfältig mit Ihnen ab." : "Danke dir für deine Nachricht. Ich stimme die nächsten Schritte gerne sorgfältig mit dir ab.",
+    verbindlich: formal ? "Vielen Dank für Ihre Nachricht. Ich bestätige Ihnen gerne den aktuellen Stand und die nächsten Schritte." : "Danke dir für deine Nachricht. Ich bestätige dir gerne den aktuellen Stand und die nächsten Schritte.",
+    entschuldigend: formal ? "Vielen Dank für Ihre Geduld und Ihre Nachricht." : "Danke dir für deine Geduld und deine Nachricht.",
+    freundlich: formal ? "Vielen Dank für Ihre Nachricht. Ich melde mich gerne dazu." : "Danke dir für deine Nachricht. Ich melde mich gerne dazu."
   };
   return openers[tone] || openers.freundlich;
 }
@@ -1477,7 +1832,7 @@ function makeKeywordSentences(context, isEnglish) {
 
 function stripKeywordLabel(item) {
   return item
-    .replace(/^\s*(termin|datum|budget|kosten|preis|honorar|nächster schritt|naechster schritt|next step|angebot|kooperation|deadline|frist|timing)\s*:\s*/i, "")
+    .replace(/^\s*(offene frage|frage|question|termin|datum|budget|kosten|preis|honorar|nächster schritt|naechster schritt|next step|angebot|kooperation|deadline|frist|timing)\s*:\s*/i, "")
     .trim();
 }
 
@@ -1511,6 +1866,12 @@ function makeSignature(context, isEnglish) {
   if (isEnglish) {
     const sender = context.senderName === "Frau Hiller" ? "Linda Hiller" : context.senderName;
     return `Best regards\n${sender}`;
+  }
+  if (context.relationship === "sie") {
+    const sender = /^(frau|herr)\s+/i.test(context.senderName || "") ? getOwnerFullName() : context.senderName;
+    const configured = context.account?.signature || "";
+    if (/^beste grüße/i.test(configured.trim())) return configured;
+    return `Beste Grüße\n${sender || getOwnerFullName()}`;
   }
   if (context.account?.signature) return context.account.signature;
   return state.style.signature;
@@ -1956,11 +2317,13 @@ function cleanupName(value) {
     .trim();
 }
 
-function resolveRelationship(selection, thread) {
+function resolveRelationship(selection, thread, channel = "") {
   if (selection !== "auto") return selection;
+  const channelLower = channel.toLowerCase();
   const lower = ` ${thread.toLowerCase()} `;
   const duScore = countMatches(lower, /\b(du|dir|dich|dein|deine|deiner|deinem)\b/g);
   const sieScore = countMatches(lower, /\b(sie|ihnen|ihre|ihrer|ihrem)\b/g);
+  if ((channelLower.includes("whatsapp") || channelLower.includes("instagram dm")) && sieScore === 0) return "du";
   return duScore > sieScore ? "du" : "sie";
 }
 
@@ -2072,6 +2435,20 @@ function formalDisplayName(name) {
     .trim();
 }
 
+function formalGreetingName(name) {
+  const clean = formalDisplayName(name);
+  if (/^(frau|herr)\s+/i.test(clean)) return clean;
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length < 2 || clean.includes("@")) return clean;
+  const first = parts[0].toLowerCase();
+  const last = parts[parts.length - 1];
+  const femaleFirstNames = new Set(["anna", "linda", "maria", "sarah", "sara", "laura", "julia", "sophie", "sofia", "katharina", "theresa", "verena", "nadine", "melanie", "carina", "christina", "claudia", "eva", "nina", "lara", "lea", "lena", "marie", "elisabeth"]);
+  const maleFirstNames = new Set(["jonas", "max", "maximilian", "michael", "lukas", "lucas", "david", "thomas", "florian", "christian", "markus", "marco", "philipp", "daniel", "andreas", "stefan", "sebastian", "paul", "moritz", "felix"]);
+  if (femaleFirstNames.has(first)) return `Frau ${last}`;
+  if (maleFirstNames.has(first)) return `Herr ${last}`;
+  return clean;
+}
+
 function splitItems(value) {
   return (value || "")
     .split(/\n|,|;/)
@@ -2084,6 +2461,12 @@ function joinReadable(items) {
   if (clean.length <= 1) return clean[0] || "";
   if (clean.length === 2) return `${clean[0]} oder ${clean[1]}`;
   return `${clean.slice(0, -1).join(", ")} und ${clean[clean.length - 1]}`;
+}
+
+function capitalizeSentence(value) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+  return clean.charAt(0).toUpperCase() + clean.slice(1).replace(/[.!?]+$/, "");
 }
 
 function containsAny(value, needles) {

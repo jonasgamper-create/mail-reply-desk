@@ -239,6 +239,69 @@ h3 {
   font-size: 13px;
 }
 
+.mail-inbox {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(63, 99, 138, 0.22);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.76);
+  padding: 12px;
+}
+
+.mail-inbox-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mail-inbox-head p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.mail-inbox-list {
+  display: grid;
+  gap: 8px;
+  max-height: 330px;
+  overflow: auto;
+}
+
+.mail-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px;
+  text-align: left;
+  white-space: normal;
+}
+
+.mail-card:hover,
+.mail-card.active {
+  border-color: rgba(12, 123, 116, 0.58);
+  box-shadow: inset 4px 0 0 var(--teal);
+}
+
+.mail-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.mail-card span,
+.mail-card p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.summary-box.compact {
+  min-height: auto;
+}
+
 .switch-line {
   display: inline-flex;
   grid-auto-flow: column;
@@ -577,6 +640,11 @@ h3 {
 
   .workflow-switch {
     grid-template-columns: 1fr;
+  }
+
+  .mail-inbox-head {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .ai-toolbar {

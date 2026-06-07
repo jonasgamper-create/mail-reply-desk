@@ -7,6 +7,7 @@ Private PWA für Linda Hiller: Mail-/DM-Antwortentwürfe, Stilprofil, Brand-Prof
 Die App ist jetzt auf Creator-/Influencer-Mailworkflows optimiert:
 
 - Kooperationsanfragen erkennen
+- Gmail Read-only verbinden und passende Threads direkt übernehmen
 - 3 Richtungen vorschlagen: Briefing, Budget/Rechte, kurze Entscheidung
 - Media-Kit, Social Links, Leistungen und Brand-Safety-Regeln im Profil speichern
 - Budget, Deliverables, Nutzungsrechte, Timing und Freigaben automatisch abfragen
@@ -32,10 +33,34 @@ Für Lindas Mac ist die App als Web-Begleiter gedacht:
 
 1. Mail, Gmail, Outlook oder Instagram im linken Fenster öffnen.
 2. `Linda Social Desk` im rechten Fenster öffnen.
-3. Mailverlauf kopieren, Stichworte ergänzen, Entwurf erzeugen.
-4. Entwurf kopieren und in Mail/DM einfügen.
+3. Bei Gmail das lokale Read-only-Backend verbinden und passende Mails laden.
+4. Mail anklicken, Verlauf automatisch übernehmen lassen und einen der 3 Entwürfe wählen.
+5. Entwurf kopieren und in Mail/DM einfügen.
 
 Der wichtigste Grund: Am Mac bleibt Linda in ihrem normalen Mail-Workflow, während die App dauerhaft daneben offen ist. Automatisch senden ist bewusst nicht eingebaut.
+
+## Gmail ohne Copy/Paste
+
+Für `info@jonnyandlinda.com` und spätere Gmail-/Google-Workspace-Konten gibt es ein lokales Read-only-Backend:
+
+```bash
+scripts/setup-gmail-readonly.sh
+```
+
+Danach in der App im Mail-Bereich:
+
+1. `Status` prüfen.
+2. `Verbinden` für Google OAuth öffnen.
+3. `Mails laden` drücken.
+4. Mail auswählen.
+
+Die App übernimmt dann Betreff, Absender, Verlauf, offene Fragen, Timing/Budget-Hinweise und erstellt direkt 3 Antwortvorschläge. Scope bleibt ausschließlich:
+
+```text
+https://www.googleapis.com/auth/gmail.readonly
+```
+
+Es gibt keine Senderechte.
 
 ## Fokusliste
 
@@ -91,14 +116,15 @@ Für das iPhone muss die App später auf HTTPS liegen, zum Beispiel Cloudflare P
 
 ## Native iPhone-Tastatur
 
-Im Ordner `ios/` liegt jetzt ein natives iOS-Geruest:
+Im Ordner `ios/` liegt jetzt ein natives iOS-Gerüst:
 
-- Container-App fuer Profil/Settings
+- Container-App für Profil/Settings
 - `MailReplyKeyboard` als Custom Keyboard Extension
 - geteiltes Profil per App Group
-- QWERTZ-Tastatur mit Schnellbuttons fuer `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`
+- QWERTZ-Tastatur mit Schnellbuttons für `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`
+- Share Extension, um markierte Mails/Nachrichten an die Tastatur zu übergeben
 
-Oeffnen:
+Öffnen:
 
 ```text
 ios/MailReplyDesk.xcodeproj

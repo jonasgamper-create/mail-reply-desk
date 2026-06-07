@@ -53,6 +53,33 @@
               <button class="workflow-button" type="button" data-workflow-mode="event">Termin erstellen</button>
             </div>
 
+            <section class="mail-inbox" aria-label="Gmail Read-only Inbox">
+              <div class="mail-inbox-head">
+                <div>
+                  <h3>Gmail Inbox</h3>
+                  <p id="gmailStatusText">Nicht verbunden</p>
+                </div>
+                <div class="button-row">
+                  <button id="checkGmailStatus" type="button">Status</button>
+                  <button id="connectGmail" type="button">Verbinden</button>
+                  <button class="primary-action" id="loadGmailMessages" type="button">Mails laden</button>
+                </div>
+              </div>
+              <div class="form-grid two">
+                <label>
+                  Backend
+                  <input id="gmailBackendUrl" autocomplete="off" placeholder="http://127.0.0.1:8787">
+                </label>
+                <label>
+                  Suche
+                  <input id="gmailQuery" autocomplete="off" placeholder="to:info@jonnyandlinda.com newer_than:30d">
+                </label>
+              </div>
+              <div id="gmailInboxList" class="mail-inbox-list">
+                <div class="summary-box compact">Nach Login werden hier die letzten passenden Mails angezeigt.</div>
+              </div>
+            </section>
+
             <div class="form-grid two">
               <label>
                 Konto

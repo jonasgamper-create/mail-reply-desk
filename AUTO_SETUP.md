@@ -35,7 +35,7 @@ Das Skript:
 1. erstellt `backend/.env`, falls es fehlt.
 2. öffnet Google Cloud Credentials, falls Client-ID/Secret fehlen.
 3. startet danach den lokalen Backend-Server.
-4. oeffnet `http://127.0.0.1:8787/auth/google`.
+4. öffnet `http://127.0.0.1:8787/auth/google`.
 
 Wichtig: Der verwendete Scope ist nur:
 
