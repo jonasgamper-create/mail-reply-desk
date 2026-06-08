@@ -88,6 +88,10 @@ final class KeyboardViewController: UIInputViewController {
     private let maximumNoteReplacementLength = 520
     private let maximumClipboardContextLength = 1600
     private let learningPrefix = "mailReplyDesk.learning.kind."
+    private let lastDraftLengthKey = "mailReplyDesk.keyboard.lastDraft.length"
+    private let lastDraftSuffixKey = "mailReplyDesk.keyboard.lastDraft.suffix"
+    private let lastDraftSourceContextKey = "mailReplyDesk.keyboard.lastDraft.sourceContext"
+    private let lastDraftSuffixLength = 48
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -1227,86 +1231,87 @@ final class KeyboardViewController: UIInputViewController {
 
     @objc private func insertThreeDrafts() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = contextForDraft(rawNotes: rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
         let drafts = [
             "1. Kurz\n\(makeDraft(kind: .short, contextOverride: context))",
             "2. Freundlich\n\(makeDraft(kind: .friendly, contextOverride: context))",
             "3. Professionell\n\(makeDraft(kind: .professional, contextOverride: context))"
         ]
-        deleteNotesIfNeeded(rawNotes)
-        insertText(drafts.joined(separator: "\n\n---\n\n"))
+        let output = drafts.joined(separator: "\n\n---\n\n")
+        replaceTextBeforeInsert(rawNotes)
+        insertGeneratedText(output, sourceContext: context)
     }
 
     @objc private func insertThanksDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        _ = contextForDraft(rawNotes: rawNotes)
-        deleteNotesIfNeeded(rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: .friendly)
         if language == .english {
-            insertText("Thank you, I really appreciate it. I will get back to you shortly if anything else is open.")
+            insertGeneratedText("Thank you, I really appreciate it. I will get back to you shortly if anything else is open.", sourceContext: context)
         } else {
-            insertText("Danke dir, das freut mich. Ich melde mich kurz, falls noch etwas offen ist.")
+            insertGeneratedText("Danke dir, das freut mich. Ich melde mich kurz, falls noch etwas offen ist.", sourceContext: context)
         }
     }
 
     @objc private func insertSorryDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        _ = contextForDraft(rawNotes: rawNotes)
-        deleteNotesIfNeeded(rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: .friendly)
         if language == .english {
-            insertText("Sorry, that took a little longer. Thanks for your patience, I will take care of it now.")
+            insertGeneratedText("Sorry, that took a little longer. Thanks for your patience, I will take care of it now.", sourceContext: context)
         } else {
-            insertText("Sorry, das hat etwas länger gedauert. Danke dir fürs Warten, ich kümmere mich jetzt darum.")
+            insertGeneratedText("Sorry, das hat etwas länger gedauert. Danke dir fürs Warten, ich kümmere mich jetzt darum.", sourceContext: context)
         }
     }
 
     @objc private func insertPrivateMeetingDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = contextForDraft(rawNotes: rawNotes)
-        deleteNotesIfNeeded(rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: .event)
         if language == .english {
-            insertText("Sounds good. Send me when and where, and I will check what works for me.")
+            insertGeneratedText("Sounds good. Send me when and where, and I will check what works for me.", sourceContext: context)
         } else if let context, normalized(context).contains("morgen") {
-            insertText("Morgen passt grundsätzlich. Sag mir bitte kurz Uhrzeit und Ort, dann richte ich mich danach.")
+            insertGeneratedText("Morgen passt grundsätzlich. Sag mir bitte kurz Uhrzeit und Ort, dann richte ich mich danach.", sourceContext: context)
         } else {
-            insertText("Klingt gut. Sag mir bitte kurz wann und wo, dann schaue ich, wie es bei mir passt.")
+            insertGeneratedText("Klingt gut. Sag mir bitte kurz wann und wo, dann schaue ich, wie es bei mir passt.", sourceContext: context)
         }
     }
 
     @objc private func insertLaterDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        _ = contextForDraft(rawNotes: rawNotes)
-        deleteNotesIfNeeded(rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: .short)
         if language == .english {
-            insertText("I saw it. I will reply properly a little later.")
+            insertGeneratedText("I saw it. I will reply properly a little later.", sourceContext: context)
         } else {
-            insertText("Hab es gesehen. Ich antworte dir später in Ruhe.")
+            insertGeneratedText("Hab es gesehen. Ich antworte dir später in Ruhe.", sourceContext: context)
         }
     }
 
     @objc private func insertTranslatedReplyDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = contextForDraft(rawNotes: rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
         let kind = bestKind(for: context ?? currentContext())
         let previousLanguage = language
         language.toggle()
         let draft = makeDraft(kind: kind, contextOverride: context)
         language = previousLanguage
-        deleteNotesIfNeeded(rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: kind)
-        insertText(draft)
+        insertGeneratedText(draft, sourceContext: context)
     }
 
     @objc private func insertAnalysisDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = contextForDraft(rawNotes: rawNotes) ?? currentContext()
+        let context = sourceContextForDraft(rawNotes: rawNotes) ?? currentContext()
         let kind = bestKind(for: context)
         let analysis = makeAnalysisDraft(context: context, kind: kind)
-        deleteNotesIfNeeded(rawNotes)
-        insertText(analysis)
+        replaceTextBeforeInsert(rawNotes)
+        insertGeneratedText(analysis, sourceContext: context)
     }
 
     @objc private func insertShortDraft() {
@@ -1357,21 +1362,21 @@ final class KeyboardViewController: UIInputViewController {
 
     private func insertDraftReplacingNotesIfUseful(kind: DraftKind) {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = contextForDraft(rawNotes: rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
         let draft = makeDraft(kind: kind, contextOverride: context)
-        deleteNotesIfNeeded(rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: kind)
-        insertText(draft)
+        insertGeneratedText(draft, sourceContext: context)
     }
 
     private func insertSmartReplyDraft() {
         let rawNotes = notesBeforeInputForReplacement()
-        let context = contextForDraft(rawNotes: rawNotes)
+        let context = sourceContextForDraft(rawNotes: rawNotes)
         let kind = bestKind(for: context ?? currentContext())
         let draft = makeDraft(kind: kind, contextOverride: context)
-        deleteNotesIfNeeded(rawNotes)
+        replaceTextBeforeInsert(rawNotes)
         registerUse(kind: kind)
-        insertText(draft)
+        insertGeneratedText(draft, sourceContext: context)
     }
 
     private func makeAnalysisDraft(context: String, kind: DraftKind) -> String {
@@ -1482,6 +1487,68 @@ final class KeyboardViewController: UIInputViewController {
             return nil
         }
         return before
+    }
+
+    private func sourceContextForDraft(rawNotes: String?) -> String? {
+        if lastGeneratedDraftAtCursor() != nil,
+           let previousSource = UserDefaults.standard.string(forKey: lastDraftSourceContextKey),
+           !previousSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return previousSource
+        }
+        return contextForDraft(rawNotes: rawNotes)
+    }
+
+    private func replaceTextBeforeInsert(_ notes: String?) {
+        if let previous = lastGeneratedDraftAtCursor() {
+            for _ in 0..<previous.length {
+                textDocumentProxy.deleteBackward()
+            }
+            clearLastGeneratedDraft()
+            return
+        }
+        deleteNotesIfNeeded(notes)
+    }
+
+    private func insertGeneratedText(_ text: String, sourceContext: String?) {
+        insertText(text)
+        rememberGeneratedDraft(text, sourceContext: sourceContext)
+    }
+
+    private func rememberGeneratedDraft(_ text: String, sourceContext: String?) {
+        let defaults = UserDefaults.standard
+        defaults.set(text.count, forKey: lastDraftLengthKey)
+        defaults.set(String(text.suffix(lastDraftSuffixLength)), forKey: lastDraftSuffixKey)
+        if let sourceContext,
+           !sourceContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            defaults.set(sourceContext, forKey: lastDraftSourceContextKey)
+        } else {
+            defaults.removeObject(forKey: lastDraftSourceContextKey)
+        }
+        defaults.synchronize()
+    }
+
+    private func lastGeneratedDraftAtCursor() -> (length: Int, sourceContext: String?)? {
+        guard (textDocumentProxy.documentContextAfterInput ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        let defaults = UserDefaults.standard
+        let length = defaults.integer(forKey: lastDraftLengthKey)
+        guard length > 0,
+              let suffix = defaults.string(forKey: lastDraftSuffixKey),
+              !suffix.isEmpty,
+              let before = textDocumentProxy.documentContextBeforeInput,
+              before.hasSuffix(suffix) else {
+            return nil
+        }
+        return (length, defaults.string(forKey: lastDraftSourceContextKey))
+    }
+
+    private func clearLastGeneratedDraft() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: lastDraftLengthKey)
+        defaults.removeObject(forKey: lastDraftSuffixKey)
+        defaults.removeObject(forKey: lastDraftSourceContextKey)
+        defaults.synchronize()
     }
 
     private func deleteNotesIfNeeded(_ notes: String?) {
