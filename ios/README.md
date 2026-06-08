@@ -3,7 +3,9 @@
 Dieses iOS-Gerüst enthält:
 
 - `MailReplyDesk`: Container-App mit Settings.
-- `MailReplyKeyboard`: iOS Custom Keyboard Extension.
+- `MailReplyKeyboard`: flexible Auto-Tastatur als Fallback.
+- `MailReplyMailKeyboard`: geschäftliche Tastatur fuer Apple Mail/Gmail.
+- `MailReplyChatKeyboard`: private Tastatur fuer WhatsApp/DMs.
 - `MailReplyShare`: Share Extension für bewusst geteilte Nachrichtentexte.
 - Profil in der App, im Free-Testmodus mit stabilem Tastatur-Default; geteilter Sync später über App Group.
 
@@ -19,7 +21,10 @@ Die Tastatur ist eine native Testversion für den direkten iPhone-Einsatz:
 - Vorname, Nachname, Geschlecht/Anredeprofil, App-Name, formeller und persönlicher Absender.
 - Creator-Profil mit Rolle, Nische, Leistungen, Media-Kit, Social Links, Preisregel, Nutzungsrechten und Briefing-Checkliste.
 - Keyboard Extension mit kompaktem QWERTZ-Layout, `ABC`, `123` und Apple-ähnlicheren Buchstabentasten.
-- Kompakte Kopfzeile mit Kontext-Menü `Auto/Privat/Arbeit`, Sprache, Anrede, Profil-Initialen bzw. `Kontext`-Status und Tastaturwechsel.
+- Kompakte Kopfzeile mit Modus-Chip, Sprache, Anrede, Profil-Initialen bzw. `Kontext`-Status und Tastaturwechsel.
+- `Mail Reply Mail` startet fest im Arbeitsmodus: geschäftlich, Du/Sie, Briefing, Preis, Termin und Vorlagen.
+- `Mail Reply Chat` startet fest im Privatmodus: keine `3x`-Leiste, kurze natürliche Antworten aus Stichworten.
+- `Mail Reply Auto` bleibt als umschaltbare Test-Tastatur mit `Auto/Privat/Arbeit`.
 - Kleine Aktionsleiste statt großer Textbuttons: intelligente Antwort, Zusage, Absage, Stilmenü `Aa`, weitere Aktionen `...`.
 - Stilmenü: `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`.
 - Im Arbeitsmodus ist `3x` ein Vorlagen-Menü: `Kurz`, `Freundlich`, `Professionell`; nur die ausgewählte Vorlage wird eingefügt.
@@ -53,7 +58,8 @@ scripts/start-phone-backend.sh
 4. In der iPhone-App `Status` prüfen.
 5. `Mails laden` drücken.
 6. Mail antippen. Der Thread ist danach für die Tastatur bereit.
-7. In Mail/WhatsApp das Antwortfeld öffnen, `Mail Reply Keyboard` wählen und `Antwort`, Vorlage oder `Check` tippen.
+7. In Mail das Antwortfeld öffnen, `Mail Reply Mail` wählen und `Antwort`, Vorlage oder `Check` tippen.
+8. In WhatsApp das Antwortfeld öffnen, `Mail Reply Chat` wählen und mit Stichworten, `Antwort`, `Ja`, `Nein`, `Kurz`, `Warm` oder `Klar` arbeiten.
 
 ## Xcode Schritte
 
@@ -61,7 +67,7 @@ scripts/start-phone-backend.sh
 2. `ios/MailReplyDesk.xcodeproj` öffnen.
 3. Target `MailReplyDesk` auswählen.
 4. Unter `Signing & Capabilities` dein Team setzen.
-5. Target `MailReplyKeyboard` auswählen.
+5. Targets `MailReplyKeyboard`, `MailReplyMailKeyboard`, `MailReplyChatKeyboard` und `MailReplyShare` auswählen.
 6. Dort ebenfalls dasselbe Team setzen.
 7. App Group pruefen: `group.com.jonasgamper.mailreplydesk`.
 8. Wenn Xcode eine andere Bundle ID verlangt, Bundle IDs und App Group eindeutig anpassen.
@@ -87,7 +93,7 @@ Der genaue Testablauf steht in [AFTERNOON_IPHONE_TEST.md](AFTERNOON_IPHONE_TEST.
 2. Profil in der App einstellen.
 3. iPhone Einstellungen öffnen.
 4. `Allgemein > Tastatur > Tastaturen`.
-5. `Mail Reply Keyboard` hinzufügen.
+5. `Mail Reply Mail` und `Mail Reply Chat` hinzufügen.
 6. Optional `Vollen Zugriff erlauben`.
 
 ## Kontext aus Mail oder WhatsApp übernehmen
@@ -99,7 +105,7 @@ Beste iPhone-Route ohne Hintergrundzugriff:
 3. `Mail Reply Desk` wählen.
 4. Die Share Extension zeigt `Kontext gespeichert`.
 5. Zurück ins Antwortfeld wechseln.
-6. `Mail Reply Keyboard` öffnen.
+6. Für Mail `Mail Reply Mail` öffnen, für WhatsApp `Mail Reply Chat`.
 7. Oben muss `Kontext` erscheinen.
 8. In WhatsApp `Antwort`, `Ja`, `Nein`, `Kurz`, `Warm`, `Klar` oder `Check` nutzen. In Mail zusätzlich `3x` als Vorlagen-Menü nutzen.
 

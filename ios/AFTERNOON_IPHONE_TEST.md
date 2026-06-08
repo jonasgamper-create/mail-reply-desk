@@ -38,8 +38,8 @@ Wenn kein iPhone online ist, endet der Script sauber mit Hinweis. Das ist unterw
 3. `Speichern` tippen.
 4. iPhone Einstellungen oeffnen.
 5. `Allgemein > Tastatur > Tastaturen > Neue Tastatur hinzufuegen`.
-6. `Mail Reply Keyboard` waehlen.
-7. `Mail Reply Keyboard` antippen.
+6. Fuer Mail `Mail Reply Mail`, fuer WhatsApp `Mail Reply Chat` waehlen.
+7. Die gewaehlte Tastatur antippen.
 8. `Vollen Zugriff erlauben` aktivieren.
 
 ## Test 1: WhatsApp privat

@@ -47,7 +47,7 @@ Die Tastatur nutzt jetzt:
 Für den täglichen Test muss funktionieren:
 
 - Tastatur auf echtem iPhone installieren.
-- In Mail/WhatsApp Textfeld öffnen und `Mail Reply Keyboard` wählen.
+- In Mail `Mail Reply Mail` waehlen; in WhatsApp `Mail Reply Chat` waehlen.
 - Oben `Auto`, `Privat` oder `Arbeit` setzen.
 - Im Textfeld Stichworte oder kopierten Kontext haben.
 - `↩` für intelligente Antwort nutzen.

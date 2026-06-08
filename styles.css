@@ -214,6 +214,37 @@ h3 {
   color: white;
 }
 
+.desktop-assist {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(38, 70, 83, 0.18);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 12px;
+}
+
+.desktop-assist h3 {
+  font-size: 15px;
+}
+
+.desktop-assist p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.desktop-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.desktop-preset-row button {
+  min-height: 36px;
+}
+
 .hidden {
   display: none !important;
 }
@@ -640,6 +671,19 @@ h3 {
 
   .workflow-switch {
     grid-template-columns: 1fr;
+  }
+
+  .desktop-assist {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .desktop-preset-row {
+    justify-content: stretch;
+  }
+
+  .desktop-preset-row button {
+    flex: 1 1 150px;
   }
 
   .mail-inbox-head {

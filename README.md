@@ -33,11 +33,14 @@ Für Lindas Mac ist die App als Web-Begleiter gedacht:
 
 1. Mail, Gmail, Outlook oder Instagram im linken Fenster öffnen.
 2. `Linda Social Desk` im rechten Fenster öffnen.
-3. Bei Gmail das lokale Read-only-Backend verbinden und passende Mails laden.
-4. Mail anklicken, Verlauf automatisch übernehmen lassen und einen der 3 Entwürfe wählen.
-5. Entwurf kopieren und in Mail/DM einfügen.
+3. Oben im Mail-Modul `Mail Reply Mail` oder `Mail Reply Chat` wählen.
+4. Bei Gmail das lokale Read-only-Backend verbinden und passende Mails laden.
+5. Mail anklicken, Verlauf automatisch übernehmen lassen und einen der 3 Entwürfe wählen.
+6. Entwurf kopieren und in Mail/DM einfügen.
 
 Der wichtigste Grund: Am Mac bleibt Linda in ihrem normalen Mail-Workflow, während die App dauerhaft daneben offen ist. Automatisch senden ist bewusst nicht eingebaut.
+
+Ein echtes Apple-Mail-Plugin ist ein separater macOS-MailKit-Ausbauschritt. Die Desktop-Oberfläche ist jetzt der sichere Zwischenschritt, weil sie sofort mit Apple Mail, Gmail, Outlook und WhatsApp Web parallel funktioniert.
 
 ## Gmail ohne Copy/Paste
 
@@ -120,7 +123,9 @@ Im Ordner `ios/` liegt jetzt ein natives iOS-Gerüst:
 
 - Container-App für Profil/Settings
 - Gmail Read-only Sektion zum Laden echter Threads über das lokale Backend
-- `MailReplyKeyboard` als Custom Keyboard Extension
+- `Mail Reply Mail` als geschäftliche Custom Keyboard Extension für Apple Mail/Gmail
+- `Mail Reply Chat` als private Custom Keyboard Extension für WhatsApp/DMs
+- `Mail Reply Auto` als flexible Fallback-Tastatur
 - geteiltes Profil per App Group
 - kompakte QWERTZ-Tastatur mit kleiner Kopfzeile, `Aa`-Stilmenü und `...`-Aktionsmenü statt großer sichtbarer Textbuttons
 - Share Extension, um markierte Mails/Nachrichten an die Tastatur zu übergeben
@@ -140,6 +145,12 @@ scripts/start-phone-backend.sh
 ```
 
 Die ausgegebene `iPhone Backend URL` in der iPhone-App unter `Gmail Read-only > Backend URL` eintragen. Danach `Status`, `Mails laden` und einen Thread antippen. Der Thread ist dann für die Tastatur über `Antwort`, `3x` oder `Check` verfügbar.
+
+Empfohlene iPhone-Nutzung:
+
+- Apple Mail/Gmail: `Mail Reply Mail` aktivieren.
+- WhatsApp/DMs: `Mail Reply Chat` aktivieren.
+- Nur wenn die automatische Umschaltung getestet werden soll: `Mail Reply Auto` verwenden.
 
 ## Technische Grenze bei iOS-Tastaturen
 

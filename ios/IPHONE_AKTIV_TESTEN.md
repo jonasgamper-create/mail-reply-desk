@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Die native `Mail Reply Keyboard` Tastatur auf einem echten iPhone testen.
+Die nativen Tastaturen `Mail Reply Mail` und `Mail Reply Chat` auf einem echten iPhone testen.
 
 ## Was du brauchst
 
@@ -87,7 +87,7 @@ Am iPhone:
 3. `Tastatur`
 4. `Tastaturen`
 5. `Tastatur hinzufügen`
-6. `Mail Reply Keyboard` auswählen.
+6. Für Mail `Mail Reply Mail`, für WhatsApp `Mail Reply Chat` auswählen.
 7. Optional `Vollen Zugriff erlauben`.
 
 ## Schritt 8: Kontext übernehmen
@@ -112,7 +112,7 @@ Wenn Teilen nicht verfügbar ist:
 1. Apple Mail oder Gmail oeffnen.
 2. Auf eine Mail antworten.
 3. Im Eingabefeld Tastatur wechseln, Globus-Taste.
-4. `Mail Reply Keyboard` auswaehlen.
+4. Fuer Mail `Mail Reply Mail`, fuer WhatsApp `Mail Reply Chat` auswaehlen.
 5. Oben prüfen, ob `Kontext` sichtbar ist.
 6. Buttons testen:
    - `Antwort`

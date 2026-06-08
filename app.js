@@ -135,6 +135,10 @@ function bindEvents() {
     button.addEventListener("click", () => setWorkflowMode(button.dataset.workflowMode));
   });
 
+  $$("[data-desktop-preset]").forEach((button) => {
+    button.addEventListener("click", () => applyDesktopPreset(button.dataset.desktopPreset));
+  });
+
   const settingSelectors = new Set(["#apiMode", "#backendUrl", "#gmailBackendUrl", "#gmailQuery", "#allowedMailOnly", "#primaryCalendar", "#calendarMode"]);
   [
     "#fromAccount",
@@ -219,6 +223,31 @@ function activatePanel(panelId) {
     panel.classList.toggle("active", panel.id === panelId);
   });
   updatePromptPreview();
+}
+
+function applyDesktopPreset(mode) {
+  activatePanel("replyPanel");
+  setWorkflowMode("reply");
+
+  if (mode === "chat") {
+    setSelectValue("#channelSelect", "WhatsApp");
+    setSelectValue("#relationshipSelect", "du");
+    setSelectValue("#toneSelect", "kurz");
+    $("#replyGoal").value = $("#replyGoal").value.trim() || "kurz und natürlich antworten";
+    $("#desktopAssistStatus").textContent = "Chat: kurz, privat, natürliche Antwort aus Stichworten";
+    showToast("Chat-Modus aktiv");
+  } else {
+    setSelectValue("#channelSelect", "E-Mail");
+    setSelectValue("#relationshipSelect", "auto");
+    setSelectValue("#toneSelect", "verbindlich");
+    $("#replyGoal").value = $("#replyGoal").value.trim() || "geschäftlich passend antworten";
+    $("#desktopAssistStatus").textContent = "Mail: geschäftlich, Du/Sie, Briefing, Preis, Termin";
+    showToast("Mail-Modus aktiv");
+  }
+
+  updatePromptPreview();
+  updateSummary();
+  updateDecisionPreview();
 }
 
 function renderAll() {

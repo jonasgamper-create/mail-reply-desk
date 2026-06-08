@@ -45,11 +45,11 @@ final class KeyboardViewController: UIInputViewController {
         case privateChat
         case work
 
-        private static let storageKey = "mailReplyDesk.keyboard.conversationMode"
+        private static let baseStorageKey = "mailReplyDesk.keyboard.conversationMode"
 
-        static func load() -> ConversationMode {
-            guard let raw = UserDefaults.standard.string(forKey: storageKey) else { return .auto }
-            return ConversationMode(rawValue: raw) ?? .auto
+        static func load(defaultMode: ConversationMode, bundleID: String?) -> ConversationMode {
+            guard let raw = UserDefaults.standard.string(forKey: storageKey(bundleID: bundleID)) else { return defaultMode }
+            return ConversationMode(rawValue: raw) ?? defaultMode
         }
 
         mutating func toggle() {
@@ -63,8 +63,8 @@ final class KeyboardViewController: UIInputViewController {
             }
         }
 
-        func save() {
-            UserDefaults.standard.set(rawValue, forKey: Self.storageKey)
+        func save(bundleID: String?) {
+            UserDefaults.standard.set(rawValue, forKey: Self.storageKey(bundleID: bundleID))
             UserDefaults.standard.synchronize()
         }
 
@@ -75,13 +75,25 @@ final class KeyboardViewController: UIInputViewController {
             case .work: return "Arbeit"
             }
         }
+
+        var fixedTitle: String {
+            switch self {
+            case .auto: return "Auto"
+            case .privateChat: return "Chat"
+            case .work: return "Mail"
+            }
+        }
+
+        private static func storageKey(bundleID: String?) -> String {
+            "\(baseStorageKey).\(bundleID ?? "default")"
+        }
     }
 
     private var profile = ProfileStore.loadProfile()
     private var keyboardMode: KeyboardMode = .letters
     private var language: OutputLanguage = .german
     private var formality: Formality = .formal
-    private var conversationMode: ConversationMode = .load()
+    private var conversationMode: ConversationMode = KeyboardViewController.initialConversationMode()
     private var isShifted = false
     private let rootStack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
@@ -92,6 +104,28 @@ final class KeyboardViewController: UIInputViewController {
     private let lastDraftSuffixKey = "mailReplyDesk.keyboard.lastDraft.suffix"
     private let lastDraftSourceContextKey = "mailReplyDesk.keyboard.lastDraft.sourceContext"
     private let lastDraftSuffixLength = 48
+
+    private static func bundledConversationMode() -> ConversationMode? {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "MailReplyDefaultMode") as? String,
+              let mode = ConversationMode(rawValue: raw),
+              mode != .auto else {
+            return nil
+        }
+        return mode
+    }
+
+    private static func initialConversationMode() -> ConversationMode {
+        let defaultMode = bundledConversationMode() ?? .auto
+        return ConversationMode.load(defaultMode: defaultMode, bundleID: Bundle.main.bundleIdentifier)
+    }
+
+    private var fixedConversationMode: ConversationMode? {
+        Self.bundledConversationMode()
+    }
+
+    private var selectedConversationMode: ConversationMode {
+        fixedConversationMode ?? conversationMode
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -465,6 +499,12 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func makeContextMenuButton() -> UIButton {
+        if let fixedConversationMode {
+            let button = makeButton(fixedConversationMode.fixedTitle, weight: .semibold, role: .system)
+            button.accessibilityLabel = "\(fixedConversationMode.fixedTitle) Tastatur"
+            return button
+        }
+
         let button = makeButton(conversationMode.shortTitle, weight: .semibold, role: .system)
         button.accessibilityLabel = "Kontextmodus"
         button.showsMenuAsPrimaryAction = true
@@ -817,9 +857,9 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func effectiveConversationMode(for topic: String) -> ConversationMode {
-        switch conversationMode {
+        switch selectedConversationMode {
         case .privateChat, .work:
-            return conversationMode
+            return selectedConversationMode
         case .auto:
             if looksLikePrivateChat(topic) {
                 return .privateChat
@@ -1444,14 +1484,16 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func toggleConversationMode() {
+        guard fixedConversationMode == nil else { return }
         conversationMode.toggle()
-        conversationMode.save()
+        conversationMode.save(bundleID: Bundle.main.bundleIdentifier)
         rebuildKeyboard()
     }
 
     private func setConversationMode(_ nextMode: ConversationMode) {
+        guard fixedConversationMode == nil else { return }
         conversationMode = nextMode
-        conversationMode.save()
+        conversationMode.save(bundleID: Bundle.main.bundleIdentifier)
         rebuildKeyboard()
     }
 

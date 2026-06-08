@@ -294,7 +294,7 @@ struct SettingsView: View {
                 }
 
                 Section("Tastatur aktivieren") {
-                    Text("1. iPhone Einstellungen öffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Keyboard hinzufügen\n4. Vollen Zugriff erlauben, damit Profil und übernommene Threads aus App/Share Extension gelesen werden können")
+                    Text("1. iPhone Einstellungen öffnen\n2. Allgemein > Tastatur > Tastaturen\n3. Mail Reply Mail für Apple Mail und Mail Reply Chat für WhatsApp hinzufügen\n4. Vollen Zugriff erlauben, damit Profil und übernommene Threads aus App/Share Extension gelesen werden können")
                         .font(.footnote)
                     Text(ProfileStore.isAppGroupAvailable ? "Geteilte Einstellungen aktiv." : "Free-Testmodus: Speichern kopiert das Profil für die Tastatur. Dafür in iOS bei der Tastatur Vollen Zugriff erlauben.")
                         .font(.footnote)

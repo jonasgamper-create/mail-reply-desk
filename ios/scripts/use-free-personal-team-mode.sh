@@ -3,10 +3,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 APP_ENTITLEMENTS="$ROOT_DIR/ios/MailReplyDesk/App/MailReplyDesk.entitlements"
-KEYBOARD_ENTITLEMENTS="$ROOT_DIR/ios/MailReplyDesk/MailReplyKeyboard/MailReplyKeyboard.entitlements"
+ENTITLEMENT_FILES=(
+  "$APP_ENTITLEMENTS"
+  "$ROOT_DIR/ios/MailReplyDesk/MailReplyKeyboard/MailReplyKeyboard.entitlements"
+  "$ROOT_DIR/ios/MailReplyDesk/MailReplyMailKeyboard/MailReplyMailKeyboard.entitlements"
+  "$ROOT_DIR/ios/MailReplyDesk/MailReplyChatKeyboard/MailReplyChatKeyboard.entitlements"
+)
 GROUP_KEY="com.apple.security.application-groups"
 
-for file in "$APP_ENTITLEMENTS" "$KEYBOARD_ENTITLEMENTS"; do
+for file in "${ENTITLEMENT_FILES[@]}"; do
   if [[ ! -f "$file" ]]; then
     echo "Fehlt: $file"
     exit 1
