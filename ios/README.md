@@ -16,9 +16,11 @@ Die Tastatur ist eine native Testversion für den direkten iPhone-Einsatz:
 - Gmail Read-only Sektion in der App: Status, Verbinden, Mails laden, Thread für Tastatur übernehmen.
 - Vorname, Nachname, Geschlecht/Anredeprofil, App-Name, formeller und persönlicher Absender.
 - Creator-Profil mit Rolle, Nische, Leistungen, Media-Kit, Social Links, Preisregel, Nutzungsrechten und Briefing-Checkliste.
-- Keyboard Extension mit kompaktem QWERTZ-Layout, `ABC`, `123` und `Tools`.
-- Sichtbarer Modus `Auto`, `Privat`, `Arbeit`.
-- Adaptive Tools: privat mit `Danke`, `Sorry`, `Treffen`, `Später`, `Übersetz.`; Arbeit mit `Termin`, `Preis`, `Koop`, `Briefing`, `Follow-up`, `Rechnung`, `MediaKit`.
+- Keyboard Extension mit kompaktem QWERTZ-Layout, `ABC`, `123` und Apple-ähnlicheren Buchstabentasten.
+- Kompakte Kopfzeile mit Kontext-Menü `Auto/Privat/Arbeit`, Sprache, Anrede, Profil-Initialen und Tastaturwechsel.
+- Kleine Aktionsleiste statt großer Textbuttons: intelligente Antwort, Zusage, Absage, Stilmenü `Aa`, weitere Aktionen `...`.
+- Stilmenü: `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`.
+- Aktionsmenü: `3 Entwürfe`, `Analyse`, `Termin`, `Preis/Budget`, `Kooperation`, `Briefing`, `Follow-up`, `MediaKit`, `Signatur`.
 - `Check` erzeugt eine kurze Ableitung aus Kontext, Stil und Antwortlogik.
 - Umschalter für `DE/EN` und `Du/Sie` direkt in der Tastatur.
 - Text wird direkt in Apple Mail, Gmail, WhatsApp usw. eingefügt, sofern Drittanbieter-Tastaturen erlaubt sind.
@@ -95,6 +97,16 @@ ios/scripts/use-app-group-mode.sh
 Die aktuelle Analyse zum lokalen Xcode-Blocker, zur empfohlenen Xcode-Version und zu den A/B-Entscheidungen steht in [XCODE_INSTALL_ANALYSE.md](XCODE_INSTALL_ANALYSE.md).
 
 Die Architektur für Nachrichtenzugriff, Share Extension, Gmail Read-only und WhatsApp-Grenzen steht in [MESSAGE_ACCESS_ARCHITECTURE.md](MESSAGE_ACCESS_ARCHITECTURE.md).
+
+Die aktuelle Produktstrategie für die kompakte iPhone-Tastatur, Distribution und P0/P1/P2 steht in [KEYBOARD_PRODUCT_STRATEGY.md](KEYBOARD_PRODUCT_STRATEGY.md).
+
+## Weitergabe per Link
+
+GitHub Pages kann die Web-App live ausliefern. Eine native iPhone-Tastatur kann iOS aber nicht direkt von einem GitHub-Link installieren. Dafür braucht es immer eine signierte iOS-App:
+
+- kostenlos lokal: Xcode Free Personal Team, sinnvoll für eigene Geräte;
+- teilbar per Link: Apple Developer Program mit TestFlight;
+- öffentlich: App Store.
 
 ## Wichtige Grenze
 

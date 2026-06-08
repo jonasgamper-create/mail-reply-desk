@@ -7,6 +7,13 @@ final class KeyboardViewController: UIInputViewController {
         case tools
     }
 
+    private enum ButtonRole {
+        case key
+        case system
+        case action
+        case primaryAction
+    }
+
     private enum OutputLanguage {
         case german
         case english
@@ -96,7 +103,7 @@ final class KeyboardViewController: UIInputViewController {
     override func updateViewConstraints() {
         super.updateViewConstraints()
         if heightConstraint == nil {
-            let constraint = view.heightAnchor.constraint(equalToConstant: 300)
+            let constraint = view.heightAnchor.constraint(equalToConstant: 286)
             constraint.priority = UILayoutPriority(999)
             constraint.isActive = true
             heightConstraint = constraint
@@ -106,15 +113,15 @@ final class KeyboardViewController: UIInputViewController {
     private func setupKeyboard() {
         view.backgroundColor = UIColor.systemGray6
         rootStack.axis = .vertical
-        rootStack.spacing = 5
+        rootStack.spacing = 4
         rootStack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(rootStack)
 
         NSLayoutConstraint.activate([
-            rootStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 7),
-            rootStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -7),
-            rootStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 7),
-            rootStack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -7)
+            rootStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
+            rootStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
+            rootStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
+            rootStack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6)
         ])
 
         rebuildKeyboard()
@@ -219,60 +226,60 @@ final class KeyboardViewController: UIInputViewController {
     private func makeHeaderRow() -> UIStackView {
         let row = UIStackView()
         row.axis = .horizontal
-        row.spacing = 6
+        row.spacing = 5
         row.alignment = .fill
         row.distribution = .fill
 
-        let title = UILabel()
-        title.text = "\(profile.initials) Mail Reply"
-        title.font = .systemFont(ofSize: 13, weight: .semibold)
-        title.textColor = .secondaryLabel
-        title.adjustsFontSizeToFitWidth = true
-        title.minimumScaleFactor = 0.72
-        title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let contextMode = makeContextMenuButton()
+        contextMode.widthAnchor.constraint(equalToConstant: 78).isActive = true
 
-        let contextMode = makeButton(conversationMode.shortTitle, weight: .semibold)
-        contextMode.addTarget(self, action: #selector(toggleConversationMode), for: .touchUpInside)
-        contextMode.widthAnchor.constraint(equalToConstant: 62).isActive = true
+        let lang = makeLanguageMenuButton()
+        lang.widthAnchor.constraint(equalToConstant: 48).isActive = true
 
-        let mode = makeButton(keyboardMode == .tools ? "ABC" : "Tools", weight: .semibold)
-        mode.addTarget(self, action: #selector(toggleTools), for: .touchUpInside)
-        mode.widthAnchor.constraint(equalToConstant: 54).isActive = true
+        let tone = makeFormalityMenuButton()
+        tone.widthAnchor.constraint(equalToConstant: 50).isActive = true
 
-        let lang = makeButton(language.shortTitle, weight: .semibold)
-        lang.addTarget(self, action: #selector(toggleLanguage), for: .touchUpInside)
-        lang.widthAnchor.constraint(equalToConstant: 40).isActive = true
+        let profileChip = makeProfileChip()
 
-        let tone = makeButton(formality.shortTitle, weight: .semibold)
-        tone.addTarget(self, action: #selector(toggleFormality), for: .touchUpInside)
-        tone.widthAnchor.constraint(equalToConstant: 44).isActive = true
-
-        let next = makeButton("Globus", weight: .regular)
+        let next = makeButton("⌨", weight: .regular, role: .system)
         next.addTarget(self, action: #selector(nextKeyboard), for: .touchUpInside)
-        next.widthAnchor.constraint(equalToConstant: 52).isActive = true
+        next.accessibilityLabel = "Nächste Tastatur"
+        next.widthAnchor.constraint(equalToConstant: 42).isActive = true
 
-        row.addArrangedSubview(title)
         row.addArrangedSubview(contextMode)
-        row.addArrangedSubview(mode)
         row.addArrangedSubview(lang)
         row.addArrangedSubview(tone)
+        row.addArrangedSubview(profileChip)
         row.addArrangedSubview(next)
         return row
     }
 
     private func makeQuickReplyRow() -> UIStackView {
-        makeToolRow([
-            ("Antwort", #selector(insertReplyDraft)),
-            ("Ja", #selector(insertApproveDraft)),
-            ("Nein", #selector(insertDeclineDraft)),
-            ("Kürzer", #selector(insertShortDraft)),
-        ])
+        let row = horizontalRow()
+
+        let smart = makeButton("↩", weight: .semibold, role: .primaryAction)
+        smart.addTarget(self, action: #selector(insertReplyDraft), for: .touchUpInside)
+        smart.accessibilityLabel = "Intelligente Antwort"
+
+        let approve = makeButton("✓", weight: .semibold, role: .action)
+        approve.addTarget(self, action: #selector(insertApproveDraft), for: .touchUpInside)
+        approve.accessibilityLabel = "Zusage erstellen"
+
+        let decline = makeButton("✕", weight: .semibold, role: .action)
+        decline.addTarget(self, action: #selector(insertDeclineDraft), for: .touchUpInside)
+        decline.accessibilityLabel = "Absage erstellen"
+
+        let style = makeStyleMenuButton()
+        let more = makeMoreMenuButton()
+
+        [smart, approve, decline, style, more].forEach { row.addArrangedSubview($0) }
+        return row
     }
 
     private func makeToolRow(_ items: [(String, Selector)]) -> UIStackView {
         let row = horizontalRow()
         items.forEach { title, selector in
-            let button = makeButton(title, weight: .medium)
+            let button = makeButton(title, weight: .medium, role: .action)
             if ["Antwort", "Ja", "Nein", "Koop", "Termin", "Mail", "Danke", "Treffen", "Preis"].contains(title) {
                 button.configuration?.baseBackgroundColor = UIColor.systemBlue
                 button.configuration?.baseForegroundColor = UIColor.white
@@ -302,7 +309,7 @@ final class KeyboardViewController: UIInputViewController {
     private func makeKeyRow(_ keys: [String]) -> UIStackView {
         let row = horizontalRow()
         keys.forEach { key in
-            let button = makeButton(displayTitle(for: key), weight: .regular)
+            let button = makeButton(displayTitle(for: key), weight: .regular, role: key == "delete" || key == "shift" || key == "#+=" ? .system : .key)
             button.accessibilityIdentifier = key
             switch key {
             case "delete":
@@ -322,16 +329,17 @@ final class KeyboardViewController: UIInputViewController {
     private func makeBottomRow() -> UIStackView {
         let row = horizontalRow()
 
-        let numbers = makeButton(keyboardMode == .numbers ? "ABC" : "123", weight: .regular)
+        let numbers = makeButton(keyboardMode == .numbers ? "ABC" : "123", weight: .regular, role: .system)
         numbers.addTarget(self, action: #selector(toggleNumbers), for: .touchUpInside)
 
-        let dictation = makeButton("Diktat", weight: .regular)
+        let dictation = makeButton("Dikt.", weight: .regular, role: .system)
         dictation.addTarget(self, action: #selector(openDictationKeyboard), for: .touchUpInside)
+        dictation.accessibilityLabel = "Zur Apple-Tastatur für Diktat wechseln"
 
-        let space = makeButton("Leerzeichen", weight: .regular)
+        let space = makeButton("Leerzeichen", weight: .regular, role: .key)
         space.addTarget(self, action: #selector(insertSpace), for: .touchUpInside)
 
-        let returnKey = makeButton("Return", weight: .regular)
+        let returnKey = makeButton("Return", weight: .regular, role: .system)
         returnKey.addTarget(self, action: #selector(insertReturn), for: .touchUpInside)
 
         row.addArrangedSubview(numbers)
@@ -339,7 +347,7 @@ final class KeyboardViewController: UIInputViewController {
         row.addArrangedSubview(space)
         row.addArrangedSubview(returnKey)
         numbers.widthAnchor.constraint(equalToConstant: 54).isActive = true
-        dictation.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        dictation.widthAnchor.constraint(equalToConstant: 58).isActive = true
         returnKey.widthAnchor.constraint(equalToConstant: 72).isActive = true
         return row
     }
@@ -347,16 +355,16 @@ final class KeyboardViewController: UIInputViewController {
     private func makeToolsBottomRow() -> UIStackView {
         let row = horizontalRow()
 
-        let abc = makeButton("ABC", weight: .semibold)
+        let abc = makeButton("ABC", weight: .semibold, role: .system)
         abc.addTarget(self, action: #selector(showLetters), for: .touchUpInside)
 
-        let lang = makeButton(language == .german ? "Deutsch" : "English", weight: .regular)
+        let lang = makeButton(language == .german ? "Deutsch" : "English", weight: .regular, role: .system)
         lang.addTarget(self, action: #selector(toggleLanguage), for: .touchUpInside)
 
-        let tone = makeButton(formality == .formal ? "Sie-Form" : "Du-Form", weight: .regular)
+        let tone = makeButton(formality == .formal ? "Sie-Form" : "Du-Form", weight: .regular, role: .system)
         tone.addTarget(self, action: #selector(toggleFormality), for: .touchUpInside)
 
-        let delete = makeButton("⌫", weight: .regular)
+        let delete = makeButton("⌫", weight: .regular, role: .system)
         delete.addTarget(self, action: #selector(deleteBackward), for: .touchUpInside)
 
         row.addArrangedSubview(abc)
@@ -369,29 +377,145 @@ final class KeyboardViewController: UIInputViewController {
     private func horizontalRow() -> UIStackView {
         let row = UIStackView()
         row.axis = .horizontal
-        row.spacing = 5
+        row.spacing = 4
         row.distribution = .fillEqually
         return row
     }
 
-    private func makeButton(_ title: String, weight: UIFont.Weight) -> UIButton {
+    private func makeButton(_ title: String, weight: UIFont.Weight, role: ButtonRole = .action) -> UIButton {
         var configuration = UIButton.Configuration.filled()
         configuration.title = title
-        configuration.baseBackgroundColor = UIColor.secondarySystemBackground
-        configuration.baseForegroundColor = UIColor.label
         configuration.cornerStyle = .small
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 4, bottom: 6, trailing: 4)
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+
+        switch role {
+        case .key:
+            configuration.baseBackgroundColor = UIColor.systemBackground
+            configuration.baseForegroundColor = UIColor.label
+        case .system:
+            configuration.baseBackgroundColor = UIColor.systemGray5
+            configuration.baseForegroundColor = UIColor.label
+        case .action:
+            configuration.baseBackgroundColor = UIColor.systemGray4
+            configuration.baseForegroundColor = UIColor.label
+        case .primaryAction:
+            configuration.baseBackgroundColor = UIColor.systemBlue
+            configuration.baseForegroundColor = UIColor.white
+        }
 
         let button = UIButton(configuration: configuration)
-        button.titleLabel?.font = .systemFont(ofSize: 14, weight: weight)
+        let fontSize: CGFloat
+        switch role {
+        case .key:
+            fontSize = title.count == 1 ? 21 : 15
+        case .system:
+            fontSize = title.count <= 2 ? 17 : 13
+        case .action, .primaryAction:
+            fontSize = title.count <= 2 ? 18 : 13
+        }
+        button.titleLabel?.font = .systemFont(ofSize: fontSize, weight: weight)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.titleLabel?.minimumScaleFactor = 0.68
+        button.titleLabel?.minimumScaleFactor = 0.72
         button.titleLabel?.lineBreakMode = .byClipping
         button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.06
+        button.layer.shadowOpacity = role == .key ? 0.12 : 0.04
         button.layer.shadowRadius = 1
         button.layer.shadowOffset = CGSize(width: 0, height: 1)
-        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: role == .key ? 38 : 30).isActive = true
+        return button
+    }
+
+    private func makeProfileChip() -> UILabel {
+        let label = UILabel()
+        label.text = profile.initials
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = .secondaryLabel
+        label.backgroundColor = UIColor.systemGray5
+        label.layer.cornerRadius = 6
+        label.layer.masksToBounds = true
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.75
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        return label
+    }
+
+    private func makeContextMenuButton() -> UIButton {
+        let button = makeButton(conversationMode.shortTitle, weight: .semibold, role: .system)
+        button.accessibilityLabel = "Kontextmodus"
+        button.showsMenuAsPrimaryAction = true
+        button.menu = UIMenu(title: "Kontext", children: [
+            UIAction(title: "Auto", state: conversationMode == .auto ? .on : .off) { [weak self] _ in
+                self?.setConversationMode(.auto)
+            },
+            UIAction(title: "Privat", state: conversationMode == .privateChat ? .on : .off) { [weak self] _ in
+                self?.setConversationMode(.privateChat)
+            },
+            UIAction(title: "Arbeit", state: conversationMode == .work ? .on : .off) { [weak self] _ in
+                self?.setConversationMode(.work)
+            }
+        ])
+        return button
+    }
+
+    private func makeLanguageMenuButton() -> UIButton {
+        let button = makeButton(language.shortTitle, weight: .semibold, role: .system)
+        button.accessibilityLabel = "Sprache"
+        button.showsMenuAsPrimaryAction = true
+        button.menu = UIMenu(title: "Sprache", children: [
+            UIAction(title: "Deutsch", state: language == .german ? .on : .off) { [weak self] _ in
+                self?.setLanguage(.german)
+            },
+            UIAction(title: "English", state: language == .english ? .on : .off) { [weak self] _ in
+                self?.setLanguage(.english)
+            }
+        ])
+        return button
+    }
+
+    private func makeFormalityMenuButton() -> UIButton {
+        let button = makeButton(formality.shortTitle, weight: .semibold, role: .system)
+        button.accessibilityLabel = "Anrede"
+        button.showsMenuAsPrimaryAction = true
+        button.menu = UIMenu(title: "Anrede", children: [
+            UIAction(title: "Du", state: formality == .casual ? .on : .off) { [weak self] _ in
+                self?.setFormality(.casual)
+            },
+            UIAction(title: "Sie", state: formality == .formal ? .on : .off) { [weak self] _ in
+                self?.setFormality(.formal)
+            }
+        ])
+        return button
+    }
+
+    private func makeStyleMenuButton() -> UIButton {
+        let button = makeButton("Aa", weight: .semibold, role: .action)
+        button.accessibilityLabel = "Stil"
+        button.showsMenuAsPrimaryAction = true
+        button.menu = UIMenu(title: "Stil", children: [
+            UIAction(title: "Kürzer") { [weak self] _ in self?.insertShortDraft() },
+            UIAction(title: "Freundlicher") { [weak self] _ in self?.insertFriendlyDraft() },
+            UIAction(title: "Professioneller") { [weak self] _ in self?.insertProfessionalDraft() },
+            UIAction(title: "Übersetzen") { [weak self] _ in self?.insertTranslatedReplyDraft() }
+        ])
+        return button
+    }
+
+    private func makeMoreMenuButton() -> UIButton {
+        let button = makeButton("...", weight: .semibold, role: .action)
+        button.accessibilityLabel = "Weitere Aktionen"
+        button.showsMenuAsPrimaryAction = true
+        button.menu = UIMenu(title: "Aktionen", children: [
+            UIAction(title: "3 Entwürfe") { [weak self] _ in self?.insertThreeDrafts() },
+            UIAction(title: "Analyse") { [weak self] _ in self?.insertAnalysisDraft() },
+            UIAction(title: "Termin") { [weak self] _ in self?.insertEventDraft() },
+            UIAction(title: "Preis/Budget") { [weak self] _ in self?.insertPricingDraft() },
+            UIAction(title: "Kooperation") { [weak self] _ in self?.insertCollaborationDraft() },
+            UIAction(title: "Briefing") { [weak self] _ in self?.insertBriefingDraft() },
+            UIAction(title: "Follow-up") { [weak self] _ in self?.insertFollowUpDraft() },
+            UIAction(title: "MediaKit") { [weak self] _ in self?.insertMediaKitDraft() },
+            UIAction(title: "Signatur") { [weak self] _ in self?.insertSignature() }
+        ])
         return button
     }
 
@@ -1025,13 +1149,29 @@ final class KeyboardViewController: UIInputViewController {
         rebuildKeyboard()
     }
 
+    private func setLanguage(_ nextLanguage: OutputLanguage) {
+        language = nextLanguage
+        rebuildKeyboard()
+    }
+
     @objc private func toggleFormality() {
         formality.toggle()
         rebuildKeyboard()
     }
 
+    private func setFormality(_ nextFormality: Formality) {
+        formality = nextFormality
+        rebuildKeyboard()
+    }
+
     @objc private func toggleConversationMode() {
         conversationMode.toggle()
+        conversationMode.save()
+        rebuildKeyboard()
+    }
+
+    private func setConversationMode(_ nextMode: ConversationMode) {
+        conversationMode = nextMode
         conversationMode.save()
         rebuildKeyboard()
     }

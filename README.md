@@ -122,7 +122,7 @@ Im Ordner `ios/` liegt jetzt ein natives iOS-Gerüst:
 - Gmail Read-only Sektion zum Laden echter Threads über das lokale Backend
 - `MailReplyKeyboard` als Custom Keyboard Extension
 - geteiltes Profil per App Group
-- QWERTZ-Tastatur mit Schnellbuttons für `Antwort`, `Mail`, `Termin`, `Briefing`, `Preis`, `Follow-up`, `MediaKit`, `Kurz`, `Warm`, `Profi`
+- kompakte QWERTZ-Tastatur mit kleiner Kopfzeile, `Aa`-Stilmenü und `...`-Aktionsmenü statt großer sichtbarer Textbuttons
 - Share Extension, um markierte Mails/Nachrichten an die Tastatur zu übergeben
 
 Öffnen:
@@ -144,6 +144,8 @@ Die ausgegebene `iPhone Backend URL` in der iPhone-App unter `Gmail Read-only > 
 ## Technische Grenze bei iOS-Tastaturen
 
 Eine echte systemweite iPhone-Tastatur braucht eine native iOS-App mit Custom Keyboard Extension. Dafür sind Xcode, Signierung und praktisch ein Apple Developer Account nötig. Custom Keyboards haben außerdem Einschränkungen: sie laufen isoliert, brauchen für Netzwerkzugriff Open Access, bekommen nicht beliebig Mailverlauf und können die Apple-Diktierfunktion nicht wie die originale Apple-Tastatur übernehmen.
+
+GitHub Pages kann die Web-App live bereitstellen. Eine native iPhone-Tastatur lässt sich aber nicht direkt von einem GitHub-Link installieren; dafür braucht es eine signierte iOS-App über Xcode, TestFlight oder App Store.
 
 Wenn die Tastatur wirklich direkt in iPhone-Apps erscheinen soll, ist HTML/PWA nicht genug. Dann braucht es:
 
