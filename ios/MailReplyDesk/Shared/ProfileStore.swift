@@ -8,6 +8,7 @@ struct UserProfile: Codable, Equatable {
     var appName: String
     var formalSender: String
     var casualSender: String
+    var mailAccounts: String
     var roleTitle: String
     var niche: String
     var services: String
@@ -29,6 +30,7 @@ struct UserProfile: Codable, Equatable {
         appName: "Mail Reply Desk",
         formalSender: "Creator Team",
         casualSender: "Creator",
+        mailAccounts: "",
         roleTitle: "Creator / Social Media Manager",
         niche: "Content Creation, Social Media, Brand-Kooperationen",
         services: "Reels, Stories, UGC, Shootings, Kampagnenkonzepte, Content-Kalender",
@@ -51,6 +53,7 @@ struct UserProfile: Codable, Equatable {
         appName: "Mail Reply Desk",
         formalSender: "Frau Hiller",
         casualSender: "Linda",
+        mailAccounts: "info@jonnyandlinda.com\nlinda.hiller@skinfit.eu\nhillerlinda@icloud.com\nlindas.contentfactory@gmail.com",
         roleTitle: "Influencerin / Social Media Managerin",
         niche: "Lifestyle, Sport, Content Creation, Brand-Kooperationen",
         services: "Reels, Stories, UGC, Shootings, Kampagnenkonzepte, Content-Kalender",
@@ -73,6 +76,7 @@ struct UserProfile: Codable, Equatable {
         appName: String,
         formalSender: String,
         casualSender: String,
+        mailAccounts: String,
         roleTitle: String,
         niche: String,
         services: String,
@@ -93,6 +97,7 @@ struct UserProfile: Codable, Equatable {
         self.appName = appName
         self.formalSender = formalSender
         self.casualSender = casualSender
+        self.mailAccounts = mailAccounts
         self.roleTitle = roleTitle
         self.niche = niche
         self.services = services
@@ -115,6 +120,7 @@ struct UserProfile: Codable, Equatable {
         case appName
         case formalSender
         case casualSender
+        case mailAccounts
         case roleTitle
         case niche
         case services
@@ -139,6 +145,7 @@ struct UserProfile: Codable, Equatable {
         appName = try values.decodeIfPresent(String.self, forKey: .appName) ?? fallback.appName
         formalSender = try values.decodeIfPresent(String.self, forKey: .formalSender) ?? fallback.formalSender
         casualSender = try values.decodeIfPresent(String.self, forKey: .casualSender) ?? fallback.casualSender
+        mailAccounts = try values.decodeIfPresent(String.self, forKey: .mailAccounts) ?? fallback.mailAccounts
         roleTitle = try values.decodeIfPresent(String.self, forKey: .roleTitle) ?? fallback.roleTitle
         niche = try values.decodeIfPresent(String.self, forKey: .niche) ?? fallback.niche
         services = try values.decodeIfPresent(String.self, forKey: .services) ?? fallback.services
@@ -162,6 +169,20 @@ struct UserProfile: Codable, Equatable {
         let first = firstName.first.map(String.init) ?? "M"
         let last = lastName.first.map(String.init) ?? "D"
         return first + last
+    }
+
+    var normalizedMailAccounts: [String] {
+        mailAccounts
+            .split(whereSeparator: { "\n,; ".contains($0) })
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { $0.contains("@") }
+    }
+
+    var suggestedGmailQuery: String {
+        let accounts = normalizedMailAccounts
+        guard !accounts.isEmpty else { return gmailQuery.isEmpty ? UserProfile.default.gmailQuery : gmailQuery }
+        let recipients = accounts.map { "to:\($0)" }.joined(separator: " OR ")
+        return "(\(recipients)) newer_than:30d"
     }
 }
 

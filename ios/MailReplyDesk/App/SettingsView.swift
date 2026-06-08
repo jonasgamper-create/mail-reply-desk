@@ -5,12 +5,14 @@ struct SettingsView: View {
     @StateObject private var store = ProfileStore()
     @StateObject private var gmail = GmailInboxViewModel()
     @State private var importText = ""
+    @State private var manualContext = ""
     @State private var statusMessage = ""
+    @State private var contextStatusMessage = ""
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Nutzerprofil") {
+                Section("Identität") {
                     TextField("Vorname", text: $store.profile.firstName)
                     TextField("Nachname", text: $store.profile.lastName)
                     Picker("Geschlecht / Anrede", selection: $store.profile.gender) {
@@ -19,14 +21,56 @@ struct SettingsView: View {
                         Text("neutral").tag("neutral")
                     }
                     TextField("App-Name", text: $store.profile.appName)
-                }
-
-                Section("Absender") {
                     TextField("Formeller Absender", text: $store.profile.formalSender)
                     TextField("Persönlicher Absender", text: $store.profile.casualSender)
                     Text("Beispiele: Frau Hiller, Linda, Herr Mustermann, Max Mustermann.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Mailkonten") {
+                    VStack(alignment: .leading) {
+                        Text("Eigene Mailkonten").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $store.profile.mailAccounts)
+                            .frame(minHeight: 86)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    Button("Gmail Suche daraus erstellen") {
+                        store.profile.gmailQuery = store.profile.suggestedGmailQuery
+                        saveAndCopyProfile(message: "Mailkonten gespeichert. Gmail Suche aktualisiert.")
+                    }
+                    Text("Ein Konto pro Zeile. Diese Liste wird mit dem Profil exportiert und macht die App übertragbar.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Empfangene Nachricht") {
+                    VStack(alignment: .leading) {
+                        Text("Mail, WhatsApp oder Verlauf").font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $manualContext)
+                            .frame(minHeight: 120)
+                            .textInputAutocapitalization(.sentences)
+                    }
+                    HStack {
+                        Button("Für Tastatur übernehmen") {
+                            saveManualContext()
+                        }
+                        Button("Leeren") {
+                            manualContext = ""
+                            MessageContextStore.clear()
+                            contextStatusMessage = "Kontext geleert."
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    Text("Besser als Copy/Paste: Nachricht oder Mail markieren, Teilen öffnen und Mail Reply Desk wählen. Danach kombiniert die Tastatur diese Nachricht mit deinen Stichworten im Antwortfeld.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if !contextStatusMessage.isEmpty {
+                        Text(contextStatusMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("Schreibstil") {
@@ -235,6 +279,16 @@ struct SettingsView: View {
         store.save()
         UIPasteboard.general.string = ProfileStore.exportString(for: store.profile)
         statusMessage = message
+    }
+
+    private func saveManualContext() {
+        let trimmed = manualContext.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            contextStatusMessage = "Kein Kontext eingegeben."
+            return
+        }
+        MessageContextStore.save(trimmed)
+        contextStatusMessage = "Kontext übernommen. Jetzt Antwortfeld öffnen und Tastatur nutzen."
     }
 
     private var activeGmailQuery: String {

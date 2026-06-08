@@ -791,23 +791,38 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func contextForDraft(rawNotes: String?) -> String? {
-        if let rawNotes {
-            let trimmed = rawNotes.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
+        let notes = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let stored = storedContextIfUseful()
+
+        if !notes.isEmpty {
+            if let stored, !stored.isEmpty {
+                return combinedContext(received: stored, notes: notes)
+            }
+            return notes
         }
 
         let visibleContext = currentContext().trimmingCharacters(in: .whitespacesAndNewlines)
         if isUsefulMessageContext(visibleContext) {
+            if let stored, !stored.isEmpty, visibleContext != stored {
+                return combinedContext(received: stored, notes: visibleContext)
+            }
             return visibleContext
         }
 
         return clipboardContextIfUseful()
     }
 
+    private func storedContextIfUseful() -> String? {
+        guard let shared = MessageContextStore.loadRecent(),
+              isUsefulMessageContext(shared),
+              !looksSensitive(shared) else {
+            return nil
+        }
+        return shared
+    }
+
     private func clipboardContextIfUseful() -> String? {
-        if let shared = MessageContextStore.loadRecent(),
-           isUsefulMessageContext(shared),
-           !looksSensitive(shared) {
+        if let shared = storedContextIfUseful() {
             return shared
         }
 
@@ -829,6 +844,15 @@ final class KeyboardViewController: UIInputViewController {
             return nil
         }
         return text
+    }
+
+    private func combinedContext(received: String, notes: String) -> String {
+        let received = cleanTopic(received, maxLength: 900)
+        let notes = cleanTopic(notes, maxLength: 360)
+        if language == .english {
+            return "Received message:\n\(received)\n\nMy notes for the reply:\n\(notes)"
+        }
+        return "Empfangene Nachricht:\n\(received)\n\nMeine Stichworte für die Antwort:\n\(notes)"
     }
 
     private func isUsefulMessageContext(_ text: String) -> Bool {
