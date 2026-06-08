@@ -22,9 +22,10 @@ Die Tastatur ist eine native Testversion für den direkten iPhone-Einsatz:
 - Kompakte Kopfzeile mit Kontext-Menü `Auto/Privat/Arbeit`, Sprache, Anrede, Profil-Initialen bzw. `Kontext`-Status und Tastaturwechsel.
 - Kleine Aktionsleiste statt großer Textbuttons: intelligente Antwort, Zusage, Absage, Stilmenü `Aa`, weitere Aktionen `...`.
 - Stilmenü: `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`.
-- Aktionsmenü: `3 Entwürfe`, `Analyse`, `Termin`, `Preis/Budget`, `Kooperation`, `Briefing`, `Follow-up`, `MediaKit`, `Signatur`.
-- `Check` erzeugt eine kurze Ableitung aus Kontext, Stil und Antwortlogik.
-- Wenn ein erzeugter Entwurf am Cursor steht, ersetzen `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`, `3 Entwürfe` und `Antwort` den vorherigen Entwurf statt ihn darunter zu stapeln.
+- Im Arbeitsmodus ist `3x` ein Vorlagen-Menü: `Kurz`, `Freundlich`, `Professionell`; nur die ausgewählte Vorlage wird eingefügt.
+- Im WhatsApp-/Privatmodus ist `3x` entfernt; dort liegt der Fokus auf natürlicher Antwort, Ja/Nein, Kurz, Warm, Klar, Treffen und Später.
+- `Check` erzeugt im Privatmodus konkrete Antwortvorschläge und im Arbeitsmodus eine kurze Ableitung aus Kontext, Stil und Antwortlogik.
+- Wenn ein erzeugter Entwurf am Cursor steht, ersetzen `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`, Vorlagen und `Antwort` den vorherigen Entwurf statt ihn darunter zu stapeln.
 - Umschalter für `DE/EN` und `Du/Sie` direkt in der Tastatur.
 - Text wird direkt in Apple Mail, Gmail, WhatsApp usw. eingefügt, sofern Drittanbieter-Tastaturen erlaubt sind.
 
@@ -52,7 +53,7 @@ scripts/start-phone-backend.sh
 4. In der iPhone-App `Status` prüfen.
 5. `Mails laden` drücken.
 6. Mail antippen. Der Thread ist danach für die Tastatur bereit.
-7. In Mail/WhatsApp das Antwortfeld öffnen, `Mail Reply Keyboard` wählen und `Antwort`, `3x` oder `Check` tippen.
+7. In Mail/WhatsApp das Antwortfeld öffnen, `Mail Reply Keyboard` wählen und `Antwort`, Vorlage oder `Check` tippen.
 
 ## Xcode Schritte
 
@@ -100,7 +101,7 @@ Beste iPhone-Route ohne Hintergrundzugriff:
 5. Zurück ins Antwortfeld wechseln.
 6. `Mail Reply Keyboard` öffnen.
 7. Oben muss `Kontext` erscheinen.
-8. `Antwort`, `3x`, `Check`, `Kürzer` oder `Profi` nutzen.
+8. In WhatsApp `Antwort`, `Ja`, `Nein`, `Kurz`, `Warm`, `Klar` oder `Check` nutzen. In Mail zusätzlich `3x` als Vorlagen-Menü nutzen.
 
 Alternativ kann der Kontext in der App unter `Empfangene Nachricht` eingefügt oder über `Gmail Read-only > Mails laden` übernommen werden.
 

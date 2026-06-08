@@ -7,9 +7,11 @@ Ziel: Die Tastatur soll im Alltag schnell schreiben. Echter Zugriff auf Nachrich
 Status: in der Keyboard Extension umgesetzt.
 
 - `Auto`, `Privat`, `Arbeit` als sichtbarer Modus.
-- Privat-Layout für WhatsApp/DM/Alltag.
+- Privat-Layout für WhatsApp/DM/Alltag ohne `3x`; Fokus auf direkte natürliche Antworten.
+- Arbeitslayout mit `3x` als Vorlagen-Menü, nicht als eingefügter Drei-Entwürfe-Block.
 - Arbeit-Layout für Mail, Kollegen, Kooperationen und Kunden.
-- `Check` erzeugt eine kurze Ableitung: Modus, Intention, Stil, Antwortlogik, Kontext.
+- `Check` erzeugt im Privatmodus Antwortvorschläge und im Arbeitsmodus eine kurze Ableitung: Modus, Intention, Stil, Antwortlogik, Kontext.
+- Kurze getippte Stichworte werden intern als Stichworte markiert und zu ganzen Sätzen umformuliert.
 - `Übersetz.` erzeugt eine Antwort in der jeweils anderen Sprache mit gleichem Kontext.
 - Lernlogik: Nutzung von `Kurz`, `Warm/Freundlich`, `Klar/Profi` wird lokal gezählt und beeinflusst bevorzugte Antworten.
 - Kein automatisches Senden.

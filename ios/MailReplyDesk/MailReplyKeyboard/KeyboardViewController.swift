@@ -169,7 +169,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func makeAdaptiveToolRows() -> [UIStackView] {
-        let mode = effectiveConversationMode(for: currentContext())
+        let mode = effectiveConversationMode(for: bestAvailableContextForMode())
         if mode == .privateChat {
             return [
                 makeToolRow([
@@ -191,7 +191,6 @@ final class KeyboardViewController: UIInputViewController {
                     ("Check", #selector(insertAnalysisDraft))
                 ]),
                 makeToolRow([
-                    ("3x", #selector(insertThreeDrafts)),
                     ("Diktat", #selector(openDictationKeyboard)),
                     ("ABC", #selector(showLetters)),
                     ("⌫", #selector(deleteBackward))
@@ -284,6 +283,15 @@ final class KeyboardViewController: UIInputViewController {
         let row = horizontalRow()
         items.forEach { title, selector in
             let button = makeButton(title, weight: .medium, role: .action)
+            if title == "3x" {
+                button.accessibilityLabel = "Antwortvorlage wählen"
+                button.showsMenuAsPrimaryAction = true
+                button.menu = makeDraftVariantMenu()
+                button.configuration?.baseBackgroundColor = UIColor.systemBlue
+                button.configuration?.baseForegroundColor = UIColor.white
+                row.addArrangedSubview(button)
+                return
+            }
             if ["Antwort", "Ja", "Nein", "Koop", "Termin", "Mail", "Danke", "Treffen", "Preis"].contains(title) {
                 button.configuration?.baseBackgroundColor = UIColor.systemBlue
                 button.configuration?.baseForegroundColor = UIColor.white
@@ -521,8 +529,11 @@ final class KeyboardViewController: UIInputViewController {
         let button = makeButton("...", weight: .semibold, role: .action)
         button.accessibilityLabel = "Weitere Aktionen"
         button.showsMenuAsPrimaryAction = true
-        button.menu = UIMenu(title: "Aktionen", children: [
-            UIAction(title: "3 Entwürfe") { [weak self] _ in self?.insertThreeDrafts() },
+        var actions: [UIMenuElement] = []
+        if effectiveConversationMode(for: bestAvailableContextForMode()) != .privateChat {
+            actions.append(makeDraftVariantMenu())
+        }
+        actions.append(contentsOf: [
             UIAction(title: "Analyse") { [weak self] _ in self?.insertAnalysisDraft() },
             UIAction(title: "Termin") { [weak self] _ in self?.insertEventDraft() },
             UIAction(title: "Preis/Budget") { [weak self] _ in self?.insertPricingDraft() },
@@ -532,7 +543,16 @@ final class KeyboardViewController: UIInputViewController {
             UIAction(title: "MediaKit") { [weak self] _ in self?.insertMediaKitDraft() },
             UIAction(title: "Signatur") { [weak self] _ in self?.insertSignature() }
         ])
+        button.menu = UIMenu(title: "Aktionen", children: actions)
         return button
+    }
+
+    private func makeDraftVariantMenu() -> UIMenu {
+        UIMenu(title: "Vorlage wählen", options: .displayInline, children: [
+            UIAction(title: "Kurz") { [weak self] _ in self?.insertDraftVariant(.short) },
+            UIAction(title: "Freundlich") { [weak self] _ in self?.insertDraftVariant(.friendly) },
+            UIAction(title: "Professionell") { [weak self] _ in self?.insertDraftVariant(.professional) }
+        ])
     }
 
     private func displayTitle(for key: String) -> String {
@@ -556,6 +576,14 @@ final class KeyboardViewController: UIInputViewController {
         let combined = (before + " " + after).trimmingCharacters(in: .whitespacesAndNewlines)
         if combined.count <= maxLength { return combined }
         return String(combined.suffix(maxLength))
+    }
+
+    private func bestAvailableContextForMode() -> String {
+        let visible = currentContext()
+        if let stored = storedContextIfUseful() {
+            return "\(stored)\n\(visible)".trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return visible
     }
 
     private func makeDraft(kind: DraftKind, contextOverride: String? = nil) -> String {
@@ -598,7 +626,12 @@ final class KeyboardViewController: UIInputViewController {
                 : "gerne. Schick mir bitte zwei bis drei passende Zeitfenster, dann koordiniere ich den Termin.\n\n\(focus)"
             }
         case .short:
-            if mode == .privateChat {
+            if let notes = userKeywords(from: topic),
+               let keywordBody = mode == .privateChat
+                ? privateKeywordBodyGerman(notes: notes)
+                : workKeywordBodyGerman(notes: notes, formal: formal) {
+                body = keywordBody
+            } else if mode == .privateChat {
                 body = shortPrivateBodyGerman(topic: topic)
             } else {
                 body = formal
@@ -606,7 +639,12 @@ final class KeyboardViewController: UIInputViewController {
                 : "danke dir. Schick mir bitte noch Scope, Timing, Budgetrahmen und Nutzungsrechte. Danach gebe ich dir eine konkrete Rückmeldung."
             }
         case .friendly:
-            if mode == .privateChat {
+            if let notes = userKeywords(from: topic),
+               let keywordBody = mode == .privateChat
+                ? privateKeywordBodyGerman(notes: notes)
+                : workKeywordBodyGerman(notes: notes, formal: formal) {
+                body = keywordBody
+            } else if mode == .privateChat {
                 body = friendlyPrivateBodyGerman(topic: topic)
             } else {
                 body = formal
@@ -614,9 +652,16 @@ final class KeyboardViewController: UIInputViewController {
                 : "danke dir, das klingt interessant.\n\n\(focus)\n\nSchick mir gerne noch die offenen Eckdaten, dann melde ich mich mit einem passenden Vorschlag."
             }
         case .professional:
-            body = mode == .privateChat
-                ? clearPrivateBodyGerman(topic: topic)
-                : "vielen Dank für Ihre Nachricht. Für eine belastbare Einschätzung brauche ich bitte Scope, Timing, Deliverables, Budgetrahmen und Nutzungsrechte.\n\n\(focus)\n\nSobald das klar ist, melde ich mich mit dem nächsten Schritt."
+            if let notes = userKeywords(from: topic),
+               let keywordBody = mode == .privateChat
+                ? privateKeywordBodyGerman(notes: notes)
+                : workKeywordBodyGerman(notes: notes, formal: formal) {
+                body = keywordBody
+            } else {
+                body = mode == .privateChat
+                    ? clearPrivateBodyGerman(topic: topic)
+                    : "vielen Dank für Ihre Nachricht. Für eine belastbare Einschätzung brauche ich bitte Scope, Timing, Deliverables, Budgetrahmen und Nutzungsrechte.\n\n\(focus)\n\nSobald das klar ist, melde ich mich mit dem nächsten Schritt."
+            }
         case .briefing:
             body = "vielen Dank für die Anfrage. Für eine konkrete Einschätzung brauche ich bitte noch:\n\n\(briefingList(limit: 6))"
         case .pricing:
@@ -776,16 +821,46 @@ final class KeyboardViewController: UIInputViewController {
         case .privateChat, .work:
             return conversationMode
         case .auto:
-            let source = normalized(topic)
-            if containsAny(source, [
-                " whatsapp ", " whats app ", " sms ", " privat ", " freund ", " freunde ",
-                " familie ", " mama ", " papa ", " schatz ", " liebling ", " insta dm ",
-                " dm ", " direct message ", " treffen wir ", " hast du zeit ", " wie geht"
-            ]) {
+            if looksLikePrivateChat(topic) {
                 return .privateChat
             }
             return .work
         }
+    }
+
+    private func looksLikePrivateChat(_ topic: String) -> Bool {
+        let source = normalized(topic)
+        if containsAny(source, [
+            " whatsapp ", " whats app ", " sms ", " privat ", " freund ", " freunde ",
+            " familie ", " mama ", " papa ", " schatz ", " liebling ", " insta dm ",
+            " dm ", " direct message ", " treffen wir ", " hast du zeit ", " wie geht",
+            " essen ", " kaffee ", " kommst du ", " lust ", " bis später ", " bis spaeter"
+        ]) {
+            return true
+        }
+
+        if isBusinessContext(topic) || containsAny(source, [
+            " sehr geehrte ", " sehr geehrter ", " guten tag ", " mit freundlichen ",
+            " beste grusse ", " beste gruesse ", " beste grüße ", " frau ", " herr ",
+            " angebot ", " rechnung ", " kunde ", " kundin ", " anfrage "
+        ]) {
+            return false
+        }
+
+        let cleaned = topic.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return false }
+        let lines = cleaned.split(whereSeparator: { $0.isNewline }).count
+        let words = cleaned.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
+
+        if lines <= 3, words <= 36 {
+            return cleaned.contains("?") || containsAny(source, [
+                " ja ", " nein ", " passt ", " ok ", " okay ", " danke ", " sorry ",
+                " morgen ", " heute ", " später ", " spaeter ", " zeit ", " treffen ",
+                " wann ", " wo ", " kurz ", " gleich "
+            ])
+        }
+
+        return false
     }
 
     private func isBusinessContext(_ topic: String) -> Bool {
@@ -814,7 +889,7 @@ final class KeyboardViewController: UIInputViewController {
             if let stored, !stored.isEmpty {
                 return combinedContext(received: stored, notes: notes)
             }
-            return notes
+            return notesContext(notes)
         }
 
         let visibleContext = currentContext().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -869,6 +944,14 @@ final class KeyboardViewController: UIInputViewController {
             return "Received message:\n\(received)\n\nMy notes for the reply:\n\(notes)"
         }
         return "Empfangene Nachricht:\n\(received)\n\nMeine Stichworte für die Antwort:\n\(notes)"
+    }
+
+    private func notesContext(_ notes: String) -> String {
+        let notes = cleanTopic(notes, maxLength: 360)
+        if language == .english {
+            return "My notes for the reply:\n\(notes)"
+        }
+        return "Meine Stichworte für die Antwort:\n\(notes)"
     }
 
     private func isUsefulMessageContext(_ text: String) -> Bool {
@@ -954,6 +1037,138 @@ final class KeyboardViewController: UIInputViewController {
         return String(cleaned.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
     }
 
+    private func userKeywords(from topic: String) -> String? {
+        let markers = [
+            "Meine Stichworte für die Antwort:",
+            "My notes for the reply:"
+        ]
+
+        for marker in markers {
+            if let range = topic.range(of: marker, options: [.caseInsensitive, .diacriticInsensitive]) {
+                let notes = topic[range.upperBound...]
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                return notes.isEmpty ? nil : String(notes)
+            }
+        }
+
+        return nil
+    }
+
+    private func sentenceFromKeywords(_ notes: String) -> String {
+        let cleaned = cleanTopic(notes, maxLength: 140)
+        guard !cleaned.isEmpty else { return "" }
+        let first = cleaned.prefix(1).uppercased()
+        let rest = cleaned.dropFirst()
+        let sentence = "\(first)\(rest)"
+        if sentence.hasSuffix(".") || sentence.hasSuffix("!") || sentence.hasSuffix("?") {
+            return sentence
+        }
+        return "\(sentence)."
+    }
+
+    private func capitalizedPhrase(_ text: String) -> String {
+        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return cleaned }
+        return "\(cleaned.prefix(1).uppercased())\(cleaned.dropFirst())"
+    }
+
+    private func timePhrase(from notes: String) -> String? {
+        let source = normalized(notes)
+        let day: String?
+        if source.contains(" heute ") {
+            day = "heute"
+        } else if source.contains(" morgen ") {
+            day = "morgen"
+        } else if source.contains(" ubermorgen ") || source.contains(" uebermorgen ") || source.contains(" übermorgen ") {
+            day = "übermorgen"
+        } else if source.contains(" montag ") {
+            day = "am Montag"
+        } else if source.contains(" dienstag ") {
+            day = "am Dienstag"
+        } else if source.contains(" mittwoch ") {
+            day = "am Mittwoch"
+        } else if source.contains(" donnerstag ") {
+            day = "am Donnerstag"
+        } else if source.contains(" freitag ") {
+            day = "am Freitag"
+        } else if source.contains(" samstag ") {
+            day = "am Samstag"
+        } else if source.contains(" sonntag ") {
+            day = "am Sonntag"
+        } else {
+            day = nil
+        }
+
+        let timePattern = #"\b\d{1,2}(:\d{2})?\s*(Uhr|uhr)\b"#
+        let time = notes.range(of: timePattern, options: .regularExpression).map { String(notes[$0]) }
+
+        switch (day, time) {
+        case let (day?, time?):
+            return "\(day) um \(time.replacingOccurrences(of: " Uhr", with: "").replacingOccurrences(of: "uhr", with: "").trimmingCharacters(in: .whitespacesAndNewlines)) Uhr"
+        case let (day?, nil):
+            return day
+        case let (nil, time?):
+            return "um \(time)"
+        case (nil, nil):
+            return nil
+        }
+    }
+
+    private func privateKeywordBodyGerman(notes: String) -> String? {
+        let source = normalized(notes)
+        let time = timePhrase(from: notes)
+
+        if containsAny(source, [" nein ", " leider nicht ", " geht nicht ", " keine zeit ", " passt nicht "]) {
+            if let time {
+                return "\(capitalizedPhrase(time)) geht bei mir leider nicht. Sag mir gerne eine Alternative."
+            }
+            return "Das geht bei mir leider nicht. Sag mir gerne, ob es eine Alternative gibt."
+        }
+
+        if containsAny(source, [" später ", " spaeter ", " nachher ", " melde mich ", " antworten später ", " antworten spaeter "]) {
+            return "Hab es gesehen. Ich antworte dir später in Ruhe."
+        }
+
+        if containsAny(source, [" ja ", " passt ", " gerne ", " ok ", " okay ", " klar "]) {
+            if let time {
+                return "Ja, \(time) passt für mich."
+            }
+            return "Ja, das passt für mich."
+        }
+
+        if containsAny(source, [" danke ", " dankeschon ", " dankeschön "]) {
+            return "Danke dir, das freut mich."
+        }
+
+        if containsAny(source, [" treffen ", " essen ", " kaffee ", " zeit "]), let time {
+            return "\(capitalizedPhrase(time)) passt bei mir. Sag mir bitte noch kurz, wo genau."
+        }
+
+        return sentenceFromKeywords(notes)
+    }
+
+    private func workKeywordBodyGerman(notes: String, formal: Bool) -> String? {
+        let source = normalized(notes)
+        let sentence = sentenceFromKeywords(notes)
+        guard !sentence.isEmpty else { return nil }
+
+        if containsAny(source, [" termin ", " call ", " meeting ", " zeitfenster "]) {
+            return formal
+                ? "\(sentence)\n\nBitte senden Sie mir dafür zwei bis drei passende Zeitfenster."
+                : "\(sentence)\n\nSchick mir dafür bitte zwei bis drei passende Zeitfenster."
+        }
+
+        if containsAny(source, [" budget ", " preis ", " honorar ", " kosten "]) {
+            return formal
+                ? "\(sentence)\n\nFür eine konkrete Einschätzung brauche ich bitte noch Scope, Timing, Deliverables und Nutzungsrechte."
+                : "\(sentence)\n\nFür eine konkrete Einschätzung brauche ich bitte noch Scope, Timing, Deliverables und Nutzungsrechte."
+        }
+
+        return formal
+            ? "\(sentence)\n\nGerne stimme ich den nächsten Schritt sauber mit Ihnen ab."
+            : "\(sentence)\n\nGerne stimme ich den nächsten Schritt sauber mit dir ab."
+    }
+
     private func focusLine(topic: String, formal: Bool) -> String {
         let topic = cleanTopic(topic)
         let fallback = language == .german ? "die Anfrage" : "the request"
@@ -977,6 +1192,10 @@ final class KeyboardViewController: UIInputViewController {
         if effectiveConversationMode(for: topic) == .privateChat {
             return privateReplyBodyGerman(topic: topic)
         }
+        if let notes = userKeywords(from: topic),
+           let body = workKeywordBodyGerman(notes: notes, formal: formal) {
+            return body
+        }
         let lower = normalized(topic)
         if lower.contains("preis") || lower.contains("budget") || lower.contains("honorar") || lower.contains("rate") {
             return pricingBodyGerman(formal: formal)
@@ -998,6 +1217,10 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func privateReplyBodyGerman(topic: String) -> String {
+        if let notes = userKeywords(from: topic),
+           let body = privateKeywordBodyGerman(notes: notes) {
+            return body
+        }
         let lower = normalized(topic)
         if containsAny(lower, [" danke ", " danke dir ", " vielen dank "]) {
             return "Sehr gerne, freut mich. Gib mir kurz Bescheid, falls noch etwas offen ist."
@@ -1021,6 +1244,10 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func shortPrivateBodyGerman(topic: String) -> String {
+        if let notes = userKeywords(from: topic),
+           let body = privateKeywordBodyGerman(notes: notes) {
+            return body
+        }
         let lower = normalized(topic)
         if looksLikeYesNoQuestion(lower) {
             return "Ja, passt grundsätzlich. Schick mir bitte kurz die Details."
@@ -1029,6 +1256,10 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func friendlyPrivateBodyGerman(topic: String) -> String {
+        if let notes = userKeywords(from: topic),
+           let body = privateKeywordBodyGerman(notes: notes) {
+            return body
+        }
         let lower = normalized(topic)
         if containsAny(lower, [" treffen ", " essen ", " kaffee ", " zeit ", " lust "]) {
             return "Klingt gut, danke dir. Sag mir kurz wann und wo, dann schaue ich, wie es bei mir passt."
@@ -1037,6 +1268,10 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func clearPrivateBodyGerman(topic: String) -> String {
+        if let notes = userKeywords(from: topic),
+           let body = privateKeywordBodyGerman(notes: notes) {
+            return body
+        }
         let lower = normalized(topic)
         if lower.contains("?") {
             return "Danke dir. Ich prüfe das kurz und gebe dir gleich eine klare Antwort."
@@ -1045,6 +1280,10 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func workReplyBodyGerman(topic: String, formal: Bool) -> String {
+        if let notes = userKeywords(from: topic),
+           let body = workKeywordBodyGerman(notes: notes, formal: formal) {
+            return body
+        }
         if formal {
             return "vielen Dank für Ihre Nachricht. Ich habe die Punkte aufgenommen und prüfe den nächsten Schritt.\n\n\(focusLine(topic: topic, formal: formal))\n\nFalls noch etwas offen ist, melde ich mich kurz mit einer Rückfrage."
         }
@@ -1242,17 +1481,11 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func insertThreeDrafts() {
-        let rawNotes = notesBeforeInputForReplacement()
-        let context = sourceContextForDraft(rawNotes: rawNotes)
-        let drafts = [
-            "1. Kurz\n\(makeDraft(kind: .short, contextOverride: context))",
-            "2. Freundlich\n\(makeDraft(kind: .friendly, contextOverride: context))",
-            "3. Professionell\n\(makeDraft(kind: .professional, contextOverride: context))"
-        ]
-        let output = drafts.joined(separator: "\n\n---\n\n")
-        replaceTextBeforeInsert(rawNotes)
-        insertGeneratedText(output, sourceContext: context)
-        improveGeneratedDraftWithBackend(kind: .reply, localDraft: output, sourceContext: context)
+        insertDraftVariant(.short)
+    }
+
+    private func insertDraftVariant(_ kind: DraftKind) {
+        insertDraftReplacingNotesIfUseful(kind: kind)
     }
 
     @objc private func insertThanksDraft() {
@@ -1400,6 +1633,24 @@ final class KeyboardViewController: UIInputViewController {
         let mode = effectiveConversationMode(for: context)
         let formal = shouldUseFormalTone(for: kind, topic: context)
         let topic = cleanTopic(context, maxLength: 220)
+
+        if mode == .privateChat {
+            if language == .english {
+                return [
+                    "Suggestions:",
+                    "- Reply: \(makeDraft(kind: .reply, contextOverride: context))",
+                    "- Short: \(makeDraft(kind: .short, contextOverride: context))",
+                    "- Clear: \(makeDraft(kind: .professional, contextOverride: context))"
+                ].joined(separator: "\n")
+            }
+
+            return [
+                "Vorschläge:",
+                "- Antwort: \(makeDraft(kind: .reply, contextOverride: context))",
+                "- Kurz: \(makeDraft(kind: .short, contextOverride: context))",
+                "- Klar: \(makeDraft(kind: .professional, contextOverride: context))"
+            ].joined(separator: "\n")
+        }
 
         if language == .english {
             return [

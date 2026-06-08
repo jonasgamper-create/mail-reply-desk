@@ -132,7 +132,11 @@ Wenn Teilen nicht verfügbar ist:
 
 Die Tastatur fügt Entwurfstexte direkt ins Mail- oder Chatfeld ein. Wenn `Kontext` oben sichtbar ist, wird die vorher übernommene Nachricht für die Antwortlogik verwendet.
 
-Wichtig: Wenn bereits ein Tastaturentwurf im Textfeld steht, sollen `Kürzer`, `Freundlicher`, `Profi`, `Übersetz.`, `3x` und `Antwort` den vorherigen Entwurf ersetzen. Es sollen nicht mehrere Versionen untereinander entstehen.
+Wichtig: Im WhatsApp-/Privatmodus gibt es kein `3x`. Im Mail-/Arbeitsmodus ist `3x` ein Vorlagen-Menü mit `Kurz`, `Freundlich` und `Professionell`; nur die ausgewählte Vorlage wird eingefügt.
+
+Wenn bereits ein Tastaturentwurf im Textfeld steht, sollen `Kürzer`, `Freundlicher`, `Profi`, `Übersetz.`, Vorlagen und `Antwort` den vorherigen Entwurf ersetzen. Es sollen nicht mehrere Versionen untereinander entstehen.
+
+Stichworttest: Tippe z.B. `ja morgen 18 Uhr` in das Antwortfeld und drücke `Antwort`. Erwartung: Die Stichworte werden gelöscht und durch einen natürlichen Satz ersetzt.
 
 Noch nicht erwartet:
 
