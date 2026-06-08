@@ -69,6 +69,14 @@ Oder lokal automatisch bauen und installieren:
 ios/scripts/build-install-personal-team.sh
 ```
 
+Fuer den Nachmittags-Test mit Simulator-Preflight und automatischer iPhone-Erkennung:
+
+```bash
+ios/scripts/afternoon-preflight.sh
+```
+
+Der genaue Testablauf steht in [AFTERNOON_IPHONE_TEST.md](AFTERNOON_IPHONE_TEST.md).
+
 ## iPhone aktivieren
 
 1. App einmal starten.
