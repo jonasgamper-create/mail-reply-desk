@@ -13,15 +13,18 @@ Die Tastatur ist eine native Testversion für den direkten iPhone-Einsatz:
 
 - Nutzerprofil in der App änderbar.
 - Profil kann kopiert, geteilt und per Copy/Paste importiert werden.
+- Empfangene Nachrichten können in der App, über Gmail Read-only oder über die Share Extension als Kontext übernommen werden.
 - Gmail Read-only Sektion in der App: Status, Verbinden, Mails laden, Thread für Tastatur übernehmen.
+- Separate optionale KI Backend URL für bessere Entwürfe, ohne Gmail-Read-only oder Senderechte zu vermischen.
 - Vorname, Nachname, Geschlecht/Anredeprofil, App-Name, formeller und persönlicher Absender.
 - Creator-Profil mit Rolle, Nische, Leistungen, Media-Kit, Social Links, Preisregel, Nutzungsrechten und Briefing-Checkliste.
 - Keyboard Extension mit kompaktem QWERTZ-Layout, `ABC`, `123` und Apple-ähnlicheren Buchstabentasten.
-- Kompakte Kopfzeile mit Kontext-Menü `Auto/Privat/Arbeit`, Sprache, Anrede, Profil-Initialen und Tastaturwechsel.
+- Kompakte Kopfzeile mit Kontext-Menü `Auto/Privat/Arbeit`, Sprache, Anrede, Profil-Initialen bzw. `Kontext`-Status und Tastaturwechsel.
 - Kleine Aktionsleiste statt großer Textbuttons: intelligente Antwort, Zusage, Absage, Stilmenü `Aa`, weitere Aktionen `...`.
 - Stilmenü: `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`.
 - Aktionsmenü: `3 Entwürfe`, `Analyse`, `Termin`, `Preis/Budget`, `Kooperation`, `Briefing`, `Follow-up`, `MediaKit`, `Signatur`.
 - `Check` erzeugt eine kurze Ableitung aus Kontext, Stil und Antwortlogik.
+- Wenn ein erzeugter Entwurf am Cursor steht, ersetzen `Kürzer`, `Freundlicher`, `Professioneller`, `Übersetzen`, `3 Entwürfe` und `Antwort` den vorherigen Entwurf statt ihn darunter zu stapeln.
 - Umschalter für `DE/EN` und `Du/Sie` direkt in der Tastatur.
 - Text wird direkt in Apple Mail, Gmail, WhatsApp usw. eingefügt, sofern Drittanbieter-Tastaturen erlaubt sind.
 
@@ -86,6 +89,21 @@ Der genaue Testablauf steht in [AFTERNOON_IPHONE_TEST.md](AFTERNOON_IPHONE_TEST.
 5. `Mail Reply Keyboard` hinzufügen.
 6. Optional `Vollen Zugriff erlauben`.
 
+## Kontext aus Mail oder WhatsApp übernehmen
+
+Beste iPhone-Route ohne Hintergrundzugriff:
+
+1. Empfangene Mail, WhatsApp-Nachricht oder DM markieren.
+2. `Teilen` öffnen.
+3. `Mail Reply Desk` wählen.
+4. Die Share Extension zeigt `Kontext gespeichert`.
+5. Zurück ins Antwortfeld wechseln.
+6. `Mail Reply Keyboard` öffnen.
+7. Oben muss `Kontext` erscheinen.
+8. `Antwort`, `3x`, `Check`, `Kürzer` oder `Profi` nutzen.
+
+Alternativ kann der Kontext in der App unter `Empfangene Nachricht` eingefügt oder über `Gmail Read-only > Mails laden` übernommen werden.
+
 ## Kostenloser Apple-ID-Test
 
 Wenn Xcode mit `App Groups` oder Signing wegen einer Personal Team-ID blockiert, zuerst den Free-Account-Modus verwenden:
@@ -118,7 +136,7 @@ GitHub Pages kann die Web-App live ausliefern. Eine native iPhone-Tastatur kann 
 
 ## Wichtige Grenze
 
-Apple erlaubt einer Custom Keyboard Extension nicht, automatisch den kompletten Apple-Mail-Verlauf zu lesen. Die Tastatur kann Text einfügen und begrenzten Textkontext sehen. Für perfekte Mailantworten nutzt die App deshalb das Gmail Read-only Backend oder die Share Extension.
+Apple erlaubt einer Custom Keyboard Extension nicht, automatisch den kompletten Apple-Mail- oder WhatsApp-Verlauf zu lesen. Die Tastatur kann Text einfügen und begrenzten Textkontext sehen. Für perfekte Antworten nutzt die App deshalb bewusst freigegebenen Kontext über Gmail Read-only, die Share Extension oder die App-Einstellung `Empfangene Nachricht`.
 
 Apple erlaubt Drittanbieter-Tastaturen außerdem keinen direkten Start der System-Diktierfunktion. Der Button `Diktat` wechselt deshalb zur nächsten Tastatur; dort kann die Apple-Diktierfunktion genutzt werden.
 

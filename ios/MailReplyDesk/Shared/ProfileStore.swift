@@ -21,6 +21,7 @@ struct UserProfile: Codable, Equatable {
     var styleVoice: String
     var learningNotes: String
     var backendURL: String
+    var aiBackendURL: String
     var gmailQuery: String
 
     static let `default` = UserProfile(
@@ -43,6 +44,7 @@ struct UserProfile: Codable, Equatable {
         styleVoice: "klar, warm, professionell, kurz, nicht künstlich",
         learningNotes: "Antworten kurz halten. Erst Briefing, Scope, Timing, Budget und Nutzungsrechte klären. Keine Preise ohne vollständigen Scope zusagen.",
         backendURL: "",
+        aiBackendURL: "",
         gmailQuery: "to:info@jonnyandlinda.com newer_than:30d"
     )
 
@@ -66,6 +68,7 @@ struct UserProfile: Codable, Equatable {
         styleVoice: "klar, warm, professionell, kurz, nicht künstlich",
         learningNotes: "Linda klingt freundlich, direkt und professionell. Kurz antworten, nie automatisch zusagen, bei Kooperationen zuerst Briefing, Budget und Nutzungsrechte klären.",
         backendURL: "",
+        aiBackendURL: "",
         gmailQuery: "to:info@jonnyandlinda.com newer_than:30d"
     )
 
@@ -89,6 +92,7 @@ struct UserProfile: Codable, Equatable {
         styleVoice: String,
         learningNotes: String,
         backendURL: String,
+        aiBackendURL: String,
         gmailQuery: String
     ) {
         self.firstName = firstName
@@ -110,6 +114,7 @@ struct UserProfile: Codable, Equatable {
         self.styleVoice = styleVoice
         self.learningNotes = learningNotes
         self.backendURL = backendURL
+        self.aiBackendURL = aiBackendURL
         self.gmailQuery = gmailQuery
     }
 
@@ -133,6 +138,7 @@ struct UserProfile: Codable, Equatable {
         case styleVoice
         case learningNotes
         case backendURL
+        case aiBackendURL
         case gmailQuery
     }
 
@@ -158,6 +164,7 @@ struct UserProfile: Codable, Equatable {
         styleVoice = try values.decodeIfPresent(String.self, forKey: .styleVoice) ?? fallback.styleVoice
         learningNotes = try values.decodeIfPresent(String.self, forKey: .learningNotes) ?? fallback.learningNotes
         backendURL = try values.decodeIfPresent(String.self, forKey: .backendURL) ?? fallback.backendURL
+        aiBackendURL = try values.decodeIfPresent(String.self, forKey: .aiBackendURL) ?? fallback.aiBackendURL
         gmailQuery = try values.decodeIfPresent(String.self, forKey: .gmailQuery) ?? fallback.gmailQuery
     }
 

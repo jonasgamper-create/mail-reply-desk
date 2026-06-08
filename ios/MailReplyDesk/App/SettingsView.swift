@@ -6,6 +6,7 @@ struct SettingsView: View {
     @StateObject private var gmail = GmailInboxViewModel()
     @State private var importText = ""
     @State private var manualContext = ""
+    @State private var currentContextPreview = ""
     @State private var statusMessage = ""
     @State private var contextStatusMessage = ""
 
@@ -46,6 +47,27 @@ struct SettingsView: View {
                 }
 
                 Section("Empfangene Nachricht") {
+                    if currentContextPreview.isEmpty {
+                        LabeledContent("Status") {
+                            Text("Kein Kontext")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            LabeledContent("Status") {
+                                Text("Kontext aktiv")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.green)
+                            }
+                            Text(currentContextPreview)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(4)
+                        }
+                    }
                     VStack(alignment: .leading) {
                         Text("Mail, WhatsApp oder Verlauf").font(.caption).foregroundStyle(.secondary)
                         TextEditor(text: $manualContext)
@@ -59,7 +81,11 @@ struct SettingsView: View {
                         Button("Leeren") {
                             manualContext = ""
                             MessageContextStore.clear()
+                            refreshContextPreview()
                             contextStatusMessage = "Kontext geleert."
+                        }
+                        Button("Status") {
+                            refreshContextPreview()
                         }
                     }
                     .buttonStyle(.bordered)
@@ -82,6 +108,16 @@ struct SettingsView: View {
                     TextEditor(text: $store.profile.learningNotes)
                         .frame(minHeight: 110)
                     Text("Diese Regeln nutzt die Tastatur für Ton, Länge und Entscheidung: Antwort, Kooperation, Preis, Termin, Follow-up oder Absage.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("KI Backend") {
+                    TextField("KI Backend URL", text: $store.profile.aiBackendURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Text("Optionaler POST-Endpunkt für bessere Entwürfe. Ohne URL arbeitet die Tastatur lokal. Es werden nie Senderechte angefragt und nichts automatisch versendet.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -272,6 +308,9 @@ struct SettingsView: View {
                     saveAndCopyProfile()
                 }
             }
+            .onAppear {
+                refreshContextPreview()
+            }
         }
     }
 
@@ -288,7 +327,12 @@ struct SettingsView: View {
             return
         }
         MessageContextStore.save(trimmed)
+        refreshContextPreview()
         contextStatusMessage = "Kontext übernommen. Jetzt Antwortfeld öffnen und Tastatur nutzen."
+    }
+
+    private func refreshContextPreview() {
+        currentContextPreview = MessageContextStore.loadRecent() ?? ""
     }
 
     private var activeGmailQuery: String {

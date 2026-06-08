@@ -39,7 +39,7 @@ Warum das wichtig ist: Diese Lösung ist deutlich näher an echter Nachrichtener
 
 ## P2: Mail-/Kalender-Backend
 
-Status: lokales Gmail Read-only Backend in `backend/` angelegt.
+Status: lokales Gmail Read-only Backend in `backend/` angelegt. Die iOS-App hat zusätzlich eine optionale `KI Backend URL`, damit ein späterer Entwurfsdienst lokale Tastaturentwürfe verbessern kann.
 
 Gmail / Google Workspace:
 
@@ -49,6 +49,14 @@ Gmail / Google Workspace:
 - Startpunkt: `backend/gmail-readonly-server.mjs`.
 - Login: `http://127.0.0.1:8787/auth/google`.
 - Nachrichten: `http://127.0.0.1:8787/gmail/messages?max=10`.
+
+KI-Entwürfe:
+
+- Separates Feld `KI Backend URL` in den iPhone-Einstellungen.
+- Die Tastatur erzeugt zuerst sofort einen lokalen Entwurf.
+- Wenn eine KI-URL gesetzt ist und voller Tastaturzugriff aktiv ist, sendet die Tastatur Kontext, Profil und lokalen Entwurf an diesen Endpunkt.
+- Die KI-Antwort ersetzt den lokalen Entwurf nur, wenn der Cursor noch direkt hinter demselben Entwurf steht.
+- Keine automatische Sendefunktion.
 
 iCloud:
 

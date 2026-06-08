@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 final class ShareViewController: UIViewController {
     private let statusLabel = UILabel()
     private let detailLabel = UILabel()
+    private let previewLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,6 +32,15 @@ final class ShareViewController: UIViewController {
         detailLabel.textAlignment = .center
         detailLabel.numberOfLines = 0
 
+        previewLabel.font = .systemFont(ofSize: 13, weight: .regular)
+        previewLabel.textColor = .secondaryLabel
+        previewLabel.numberOfLines = 6
+        previewLabel.textAlignment = .left
+        previewLabel.backgroundColor = UIColor.secondarySystemBackground
+        previewLabel.layer.cornerRadius = 8
+        previewLabel.layer.masksToBounds = true
+        previewLabel.isHidden = true
+
         let done = UIButton(type: .system)
         done.setTitle("Fertig", for: .normal)
         done.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
@@ -38,6 +48,7 @@ final class ShareViewController: UIViewController {
 
         stack.addArrangedSubview(statusLabel)
         stack.addArrangedSubview(detailLabel)
+        stack.addArrangedSubview(previewLabel)
         stack.addArrangedSubview(done)
         view.addSubview(stack)
 
@@ -59,8 +70,18 @@ final class ShareViewController: UIViewController {
 
             MessageContextStore.save(text)
             statusLabel.text = "Kontext gespeichert"
-            detailLabel.text = "Jetzt Antwortfeld öffnen, Mail Reply Desk Tastatur wählen und Antwort, 3x oder Check tippen."
+            detailLabel.text = "Jetzt Antwortfeld öffnen, Mail Reply Desk Tastatur wählen und Antwort, 3x oder Check tippen. Die Tastatur zeigt oben Kontext an."
+            previewLabel.text = previewText(text)
+            previewLabel.isHidden = false
         }
+    }
+
+    private func previewText(_ text: String) -> String {
+        let cleaned = text
+            .replacingOccurrences(of: "\n\n\n", with: "\n\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.count <= 420 { return "  \(cleaned)  " }
+        return "  \(cleaned.prefix(420))...  "
     }
 
     private func extractSharedText() async -> String? {

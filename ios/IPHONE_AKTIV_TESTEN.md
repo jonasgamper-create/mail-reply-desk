@@ -10,11 +10,11 @@ Die native `Mail Reply Keyboard` Tastatur auf einem echten iPhone testen.
 - iPhone
 - Apple-ID
 - USB-Kabel oder WLAN-Debugging
-- optional Apple Developer Program, wenn App Groups und spaetere Verteilung sauber funktionieren sollen
+- optional Apple Developer Program, wenn App Groups und spätere Verteilung sauber funktionieren sollen
 
 ## Schritt 1: Xcode installieren
 
-1. App Store am Mac oeffnen.
+1. App Store am Mac öffnen.
 2. `Xcode` suchen.
 3. Xcode installieren.
 4. Xcode einmal starten.
@@ -28,13 +28,13 @@ Im Finder:
 ios/MailReplyDesk.xcodeproj
 ```
 
-Mit Xcode oeffnen.
+Mit Xcode öffnen.
 
 ## Schritt 3: iPhone anschliessen
 
 1. iPhone per Kabel verbinden.
-2. Am iPhone `Diesem Computer vertrauen` bestaetigen.
-3. In Xcode oben als Zielgeraet dein iPhone auswaehlen.
+2. Am iPhone `Diesem Computer vertrauen` bestätigen.
+3. In Xcode oben als Zielgerät dein iPhone auswählen.
 
 ## Schritt 4: Signing setzen
 
@@ -44,13 +44,13 @@ Target `MailReplyDesk`:
 
 1. `Signing & Capabilities`
 2. `Automatically manage signing` aktivieren.
-3. Bei `Team` deine Apple-ID / dein Team auswaehlen.
+3. Bei `Team` deine Apple-ID / dein Team auswählen.
 
 Target `MailReplyKeyboard`:
 
 1. `Signing & Capabilities`
 2. `Automatically manage signing` aktivieren.
-3. Dasselbe Team auswaehlen.
+3. Dasselbe Team auswählen.
 
 ## Schritt 5: Falls App Groups Fehler machen
 
@@ -65,7 +65,7 @@ Option A, beste Variante:
 Option B, schneller erster Test:
 
 - App Group Capability in beiden Targets entfernen.
-- Die Tastatur laeuft dann mit Standardprofil.
+- Die Tastatur läuft dann mit Standardprofil.
 - Settings werden dann noch nicht sauber zwischen App und Tastatur geteilt.
 
 ## Schritt 6: App auf iPhone starten
@@ -86,17 +86,35 @@ Am iPhone:
 2. `Allgemein`
 3. `Tastatur`
 4. `Tastaturen`
-5. `Tastatur hinzufuegen`
-6. `Mail Reply Keyboard` auswaehlen.
+5. `Tastatur hinzufügen`
+6. `Mail Reply Keyboard` auswählen.
 7. Optional `Vollen Zugriff erlauben`.
 
-## Schritt 8: In Mail testen
+## Schritt 8: Kontext übernehmen
+
+Für echte Ableitungen aus der vorherigen Nachricht:
+
+1. In Mail, Gmail, WhatsApp oder Instagram eine Nachricht markieren.
+2. `Teilen` öffnen.
+3. `Mail Reply Desk` wählen.
+4. Prüfen, ob `Kontext gespeichert` erscheint.
+5. Zurück ins Antwortfeld wechseln.
+
+Wenn Teilen nicht verfügbar ist:
+
+1. Nachricht kopieren.
+2. `Mail Reply Desk` App öffnen.
+3. Unter `Empfangene Nachricht` einfügen.
+4. `Für Tastatur übernehmen` drücken.
+
+## Schritt 9: In Mail oder WhatsApp testen
 
 1. Apple Mail oder Gmail oeffnen.
 2. Auf eine Mail antworten.
 3. Im Eingabefeld Tastatur wechseln, Globus-Taste.
 4. `Mail Reply Keyboard` auswaehlen.
-5. Buttons testen:
+5. Oben prüfen, ob `Kontext` sichtbar ist.
+6. Buttons testen:
    - `Antwort`
    - `Mail`
    - `Termin`
@@ -107,15 +125,19 @@ Am iPhone:
    - `Kurz`
    - `Warm`
    - `Profi`
+   - `Kürzer`
+   - `Check`
 
 ## Erwartung fuer den ersten Test
 
-Die Tastatur fuegt lokale Entwurfstexte direkt ins Mailfeld ein.
+Die Tastatur fügt Entwurfstexte direkt ins Mail- oder Chatfeld ein. Wenn `Kontext` oben sichtbar ist, wird die vorher übernommene Nachricht für die Antwortlogik verwendet.
+
+Wichtig: Wenn bereits ein Tastaturentwurf im Textfeld steht, sollen `Kürzer`, `Freundlicher`, `Profi`, `Übersetz.`, `3x` und `Antwort` den vorherigen Entwurf ersetzen. Es sollen nicht mehrere Versionen untereinander entstehen.
 
 Noch nicht erwartet:
 
-- automatische Mail-Erkennung
-- echter Thread-Kontext
-- Gmail/iCloud Login
+- automatische Hintergrund-Erkennung aus privatem WhatsApp
+- automatische Hintergrund-Erkennung aus Apple Mail ohne Teilen/Gmail
+- automatisches Senden
 
-Dafuer braucht es das Backend.
+Dafür braucht es bewusst verbundenen Zugriff, z.B. Gmail Read-only Backend oder Share Extension. Automatisches Senden bleibt absichtlich deaktiviert.

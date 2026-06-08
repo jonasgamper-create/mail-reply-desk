@@ -243,7 +243,7 @@ final class KeyboardViewController: UIInputViewController {
         let tone = makeFormalityMenuButton()
         tone.widthAnchor.constraint(equalToConstant: 50).isActive = true
 
-        let profileChip = makeProfileChip()
+        let statusChip = makeStatusChip()
 
         let next = makeButton("⌨", weight: .regular, role: .system)
         next.addTarget(self, action: #selector(nextKeyboard), for: .touchUpInside)
@@ -253,7 +253,7 @@ final class KeyboardViewController: UIInputViewController {
         row.addArrangedSubview(contextMode)
         row.addArrangedSubview(lang)
         row.addArrangedSubview(tone)
-        row.addArrangedSubview(profileChip)
+        row.addArrangedSubview(statusChip)
         row.addArrangedSubview(next)
         return row
     }
@@ -429,19 +429,31 @@ final class KeyboardViewController: UIInputViewController {
         return button
     }
 
-    private func makeProfileChip() -> UILabel {
-        let label = UILabel()
-        label.text = profile.initials
-        label.textAlignment = .center
-        label.font = .systemFont(ofSize: 13, weight: .semibold)
-        label.textColor = .secondaryLabel
-        label.backgroundColor = UIColor.systemGray5
-        label.layer.cornerRadius = 6
-        label.layer.masksToBounds = true
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.75
-        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        return label
+    private func makeStatusChip() -> UIButton {
+        let hasContext = storedContextIfUseful() != nil
+        let title = hasContext ? "Kontext" : profile.initials
+        let button = makeButton(title, weight: .semibold, role: .system)
+        button.accessibilityLabel = hasContext ? "Kontext aktiv" : "Profil \(profile.fullName)"
+        button.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        if hasContext {
+            button.configuration?.baseBackgroundColor = UIColor.systemGreen
+            button.configuration?.baseForegroundColor = UIColor.white
+            button.showsMenuAsPrimaryAction = true
+            button.menu = UIMenu(title: "Kontext aktiv", children: [
+                UIAction(title: "Check einfügen") { [weak self] _ in
+                    self?.insertAnalysisDraft()
+                },
+                UIAction(title: "Kontext löschen", attributes: .destructive) { [weak self] _ in
+                    MessageContextStore.clear()
+                    self?.clearLastGeneratedDraft()
+                    self?.rebuildKeyboard()
+                }
+            ])
+        }
+
+        return button
     }
 
     private func makeContextMenuButton() -> UIButton {
@@ -1240,6 +1252,7 @@ final class KeyboardViewController: UIInputViewController {
         let output = drafts.joined(separator: "\n\n---\n\n")
         replaceTextBeforeInsert(rawNotes)
         insertGeneratedText(output, sourceContext: context)
+        improveGeneratedDraftWithBackend(kind: .reply, localDraft: output, sourceContext: context)
     }
 
     @objc private func insertThanksDraft() {
@@ -1303,6 +1316,7 @@ final class KeyboardViewController: UIInputViewController {
         replaceTextBeforeInsert(rawNotes)
         registerUse(kind: kind)
         insertGeneratedText(draft, sourceContext: context)
+        improveGeneratedDraftWithBackend(kind: kind, localDraft: draft, sourceContext: context)
     }
 
     @objc private func insertAnalysisDraft() {
@@ -1312,6 +1326,7 @@ final class KeyboardViewController: UIInputViewController {
         let analysis = makeAnalysisDraft(context: context, kind: kind)
         replaceTextBeforeInsert(rawNotes)
         insertGeneratedText(analysis, sourceContext: context)
+        improveGeneratedDraftWithBackend(kind: kind, localDraft: analysis, sourceContext: context)
     }
 
     @objc private func insertShortDraft() {
@@ -1367,6 +1382,7 @@ final class KeyboardViewController: UIInputViewController {
         replaceTextBeforeInsert(rawNotes)
         registerUse(kind: kind)
         insertGeneratedText(draft, sourceContext: context)
+        improveGeneratedDraftWithBackend(kind: kind, localDraft: draft, sourceContext: context)
     }
 
     private func insertSmartReplyDraft() {
@@ -1377,6 +1393,7 @@ final class KeyboardViewController: UIInputViewController {
         replaceTextBeforeInsert(rawNotes)
         registerUse(kind: kind)
         insertGeneratedText(draft, sourceContext: context)
+        improveGeneratedDraftWithBackend(kind: kind, localDraft: draft, sourceContext: context)
     }
 
     private func makeAnalysisDraft(context: String, kind: DraftKind) -> String {
@@ -1465,6 +1482,161 @@ final class KeyboardViewController: UIInputViewController {
         case .decline: return "höflich absagen, ohne unnötig zu erklären."
         default: return "Kontext bestätigen und nächsten Schritt klar machen."
         }
+    }
+
+    private func improveGeneratedDraftWithBackend(kind: DraftKind, localDraft: String, sourceContext: String?) {
+        guard hasFullAccess,
+              let url = aiBackendEndpoint(),
+              !localDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
+        let context = (sourceContext ?? currentContext()).trimmingCharacters(in: .whitespacesAndNewlines)
+        Task { [weak self] in
+            guard let self else { return }
+            guard let improved = await self.requestBackendDraft(url: url, kind: kind, context: context, localDraft: localDraft),
+                  !improved.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  improved != localDraft else {
+                return
+            }
+
+            await MainActor.run {
+                self.replaceLastGeneratedDraftWithBackend(improved, sourceContext: context)
+            }
+        }
+    }
+
+    private func aiBackendEndpoint() -> URL? {
+        let trimmed = profile.aiBackendURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
+    }
+
+    private func requestBackendDraft(url: URL, kind: DraftKind, context: String, localDraft: String) async -> String? {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 20
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let payload: [String: Any] = [
+            "operation": kind.storageKey,
+            "prompt": backendPrompt(kind: kind, context: context, localDraft: localDraft),
+            "context": context,
+            "draft": localDraft,
+            "language": language == .german ? "de" : "en",
+            "formality": formality == .formal ? "formal" : "casual",
+            "conversationMode": effectiveConversationMode(for: context).shortTitle,
+            "profile": [
+                "firstName": profile.firstName,
+                "lastName": profile.lastName,
+                "formalSender": profile.formalSender,
+                "casualSender": profile.casualSender,
+                "mailAccounts": profile.normalizedMailAccounts,
+                "roleTitle": profile.roleTitle,
+                "niche": profile.niche,
+                "services": profile.services,
+                "styleVoice": profile.styleVoice,
+                "learningNotes": profile.learningNotes,
+                "rateCardNote": profile.rateCardNote,
+                "usageRightsPolicy": profile.usageRightsPolicy,
+                "briefingChecklist": profile.briefingChecklist,
+                "brandSafetyNoGos": profile.brandSafetyNoGos
+            ]
+        ]
+
+        guard JSONSerialization.isValidJSONObject(payload),
+              let body = try? JSONSerialization.data(withJSONObject: payload) else {
+            return nil
+        }
+        request.httpBody = body
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse,
+               !(200..<300).contains(http.statusCode) {
+                return nil
+            }
+            return extractBackendText(from: data)
+        } catch {
+            return nil
+        }
+    }
+
+    private func backendPrompt(kind: DraftKind, context: String, localDraft: String) -> String {
+        let mode = effectiveConversationMode(for: context)
+        if language == .english {
+            return """
+            Improve the draft below for a private iPhone keyboard assistant. Never send automatically. Use the received context, keep the message coherent, and match \(mode == .privateChat ? "private chat" : "business email") style.
+
+            Intent: \(kind.storageKey)
+            Profile: \(profile.fullName), \(profile.roleTitle)
+            Voice: \(profile.styleVoice)
+            Rules: \(profile.learningNotes)
+
+            Received context:
+            \(cleanTopic(context, maxLength: 1200))
+
+            Draft to improve:
+            \(localDraft)
+            """
+        }
+
+        return """
+        Verbessere den folgenden Entwurf für eine private iPhone-Tastatur. Niemals automatisch senden. Nutze den empfangenen Kontext, antworte nachvollziehbar und passe den Stil an \(mode == .privateChat ? "private Chat-Kommunikation" : "geschäftliche Mail-Kommunikation") an.
+
+        Absicht: \(kind.storageKey)
+        Profil: \(profile.fullName), \(profile.roleTitle)
+        Stimme: \(profile.styleVoice)
+        Regeln: \(profile.learningNotes)
+
+        Empfangener Kontext:
+        \(cleanTopic(context, maxLength: 1200))
+
+        Entwurf verbessern:
+        \(localDraft)
+        """
+    }
+
+    private func extractBackendText(from data: Data) -> String? {
+        if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            for key in ["text", "output", "answer", "content"] {
+                if let text = object[key] as? String,
+                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return text.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+
+            if let message = object["message"] as? [String: Any],
+               let content = message["content"] as? String,
+               !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return content.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+
+            if let choices = object["choices"] as? [[String: Any]],
+               let first = choices.first,
+               let message = first["message"] as? [String: Any],
+               let content = message["content"] as? String,
+               !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return content.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+
+        if let text = String(data: data, encoding: .utf8) {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+
+        return nil
+    }
+
+    private func replaceLastGeneratedDraftWithBackend(_ improved: String, sourceContext: String?) {
+        guard let previous = lastGeneratedDraftAtCursor() else { return }
+        for _ in 0..<previous.length {
+            textDocumentProxy.deleteBackward()
+        }
+        clearLastGeneratedDraft()
+        insertGeneratedText(improved, sourceContext: sourceContext)
     }
 
     private func notesBeforeInputForReplacement() -> String? {

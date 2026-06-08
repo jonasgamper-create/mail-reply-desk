@@ -23,7 +23,7 @@ enum MessageContextStore {
         UIPasteboard.general.string = "\(clipboardPrefix)\n\(cleaned)"
     }
 
-    static func loadRecent() -> String? {
+    static func loadRecent(includeClipboard: Bool = false) -> String? {
         let defaults = UserDefaults(suiteName: ProfileStore.appGroupID) ?? .standard
         if let text = loadRecent(from: defaults) {
             return text
@@ -31,6 +31,7 @@ enum MessageContextStore {
         if let text = loadRecent(from: .standard) {
             return text
         }
+        guard includeClipboard else { return nil }
         return decodeClipboardContext(UIPasteboard.general.string)
     }
 
